@@ -4,9 +4,9 @@ This is a tool for recording terminal commands to svg or video.
 
 ## Requirements
 
-- python3 & pip3
-- nodejs & npm
-- ffmpeg
+- [python3 & pip3](https://www.python.org/)
+- [node & npm](https://nodejs.org/)
+- [ffmpeg](https://ffmpeg.org/)
 
 ### Non-required but will install automatically
 
