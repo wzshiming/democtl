@@ -15,8 +15,10 @@ export PLAY_PS1="$ "
 CACHE_DIR=${TMPDIR:-/tmp}/democtl
 ARGS=()
 
-export PYTHONPATH="${CACHE_DIR}/py_modules"
-export PATH="${PYTHONPATH}/bin:${CACHE_DIR}/node_modules/.bin:${PATH}:${PATH}"
+export ASCIINEMA_PATH="${CACHE_DIR}/asciinema"
+export PLAYPTY_PATH="${CACHE_DIR}/playpty"
+export PYTHONPATH="${ASCIINEMA_PATH}:${PLAYPTY_PATH}"
+export PATH="${ASCIINEMA_PATH}/bin:${PLAYPTY_PATH}/bin:${CACHE_DIR}/node_modules/.bin:${PATH}"
 
 function usage() {
   echo "Usage: ${0} <input> <output> [--help] [options...]"
@@ -90,7 +92,7 @@ function install_playpty() {
   if command_exist playpty; then
     return 0
   elif command_exist pip3; then
-    pip3 install playpty --target "${PYTHONPATH}" >&2
+    pip3 install playpty --target "${PLAYPTY_PATH}" >&2
   else
     echo "playpty is not installed" >&2
     return 1
@@ -102,7 +104,7 @@ function install_asciinema() {
   if command_exist asciinema; then
     return 0
   elif command_exist pip3; then
-    pip3 install asciinema --target "${PYTHONPATH}" >&2
+    pip3 install asciinema --target "${ASCIINEMA_PATH}" >&2
   else
     echo "asciinema is not installed" >&2
     return 1
@@ -311,5 +313,7 @@ function main() {
   convert "${INPUT_FILE}" "${OUTPUT_FILE}"
 }
 
-args "$@"
-main
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  args "$@"
+  main
+fi
