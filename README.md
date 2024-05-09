@@ -10,9 +10,10 @@ This is a tool for recording terminal commands to svg or video.
 
 ### Non-required but will install automatically
 
-- asciinema
-- svg-term-cli
-- svg-to-video
+- [asciinema](https://pypi.org/project/asciinema/)
+- [playpty](https://pypi.org/project/playpty/)
+- [svg-term-cli](https://www.npmjs.com/package/svg-term-cli)
+- [@wzshiming/svg-to-video](https://www.npmjs.com/package/@wzshiming/svg-to-video)
 
 ## Demo
 
