@@ -1,0 +1,22 @@
+# This is a test
+env
+
+# Test multiline
+echo \
+  hello \
+  world
+
+# Test tty
+docker run --rm -it alpine ls
+
+# Test long time consuming command
+sleep 10
+
+# Test long time consuming command with output
+for i in {1..10}; do \
+  echo $i; \
+  sleep 1; \
+done
+
+# Cleanup
+clear
