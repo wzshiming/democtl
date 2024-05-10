@@ -9,6 +9,7 @@ ROWS=24
 SVG_TERM=""
 SVG_PROFILE=""
 SIM_ENV=()
+PLAY_SHELL=bash
 
 export PLAY_PS1="$ "
 
@@ -31,6 +32,7 @@ function usage() {
   echo "  --term=${SVG_TERM} terminal type"
   echo "  --profile=${SVG_PROFILE} terminal profile"
   echo "  --env=${SIM_ENV[*]} environment variables will be passed to the simulation script"
+  echo "  --shell=${PLAY_SHELL} shell of the recording"
 }
 
 # args parses the arguments.
@@ -64,6 +66,10 @@ function args() {
       [[ "${arg#*=}" != "${arg}" ]] && SIM_ENV+=("${arg#*=}") || { SIM_ENV+=("${2}") && shift; } || :
         shift
         ;;
+    --shell | --shell=*)
+      [[ "${arg#*=}" != "${arg}" ]] && PLAY_SHELL="${arg#*=}" || { PLAY_SHELL="${2}" && shift; } || :
+      shift
+      ;;
     --help)
       usage
       exit 0
@@ -160,7 +166,7 @@ function demo2cast() {
     --cols "${COLS}" \
     --rows "${ROWS}" \
     --env "" \
-    --command "playpty ${input} --ps1='${PLAY_PS1}' --cols=${COLS} --rows=${ROWS} --env ${SIM_ENV[*]}"
+    --command "playpty ${input} --ps1='${PLAY_PS1}' --cols=${COLS} --rows=${ROWS} --shell=${PLAY_SHELL} --env ${SIM_ENV[*]}"
 }
 
 # cast2svg converts the input cast file to the output svg file.
