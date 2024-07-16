@@ -10,6 +10,7 @@ SVG_TERM=""
 SVG_PROFILE=""
 SIM_ENV=()
 PLAY_SHELL=bash
+INSTALL=()
 
 export PLAY_PS1="$ "
 
@@ -64,10 +65,14 @@ function args() {
       ;;
     --env | --env=*)
       [[ "${arg#*=}" != "${arg}" ]] && SIM_ENV+=("${arg#*=}") || { SIM_ENV+=("${2}") && shift; } || :
-        shift
-        ;;
+      shift
+      ;;
     --shell | --shell=*)
       [[ "${arg#*=}" != "${arg}" ]] && PLAY_SHELL="${arg#*=}" || { PLAY_SHELL="${2}" && shift; } || :
+      shift
+      ;;
+    --install | --install=*)
+      [[ "${arg#*=}" != "${arg}" ]] && INSTALL+=("${arg#*=}") || { INSTALL+=("${2}") && shift; } || :
       shift
       ;;
     --help)
@@ -98,7 +103,7 @@ function install_playpty() {
   if command_exist playpty; then
     return 0
   elif command_exist pip3; then
-    pip3 install playpty --target "${PLAYPTY_PATH}" >&2
+    pip3 install playpty==0.1.4 --target "${PLAYPTY_PATH}" >&2
   else
     echo "playpty is not installed" >&2
     return 1
@@ -110,7 +115,7 @@ function install_asciinema() {
   if command_exist asciinema; then
     return 0
   elif command_exist pip3; then
-    pip3 install asciinema --target "${ASCIINEMA_PATH}" >&2
+    pip3 install asciinema==2.4.0 --target "${ASCIINEMA_PATH}" >&2
   else
     echo "asciinema is not installed" >&2
     return 1
@@ -122,7 +127,7 @@ function install_svg_term_cli() {
   if command_exist svg-term; then
     return 0
   elif command_exist npm; then
-    npm install --save-dev svg-term-cli --prefix "${CACHE_DIR}" >&2
+    npm install --save-dev svg-term-cli@2.1.1 --prefix "${CACHE_DIR}" >&2
   else
     echo "svg-term is not installed" >&2
     return 1
@@ -134,7 +139,7 @@ function install_svg_to_video() {
   if command_exist svg-to-video; then
     return 0
   elif command_exist npm; then
-    npm install --save-dev https://github.com/wzshiming/svg-to-video --prefix "${CACHE_DIR}" >&2
+    npm install --save-dev @wzshiming/svg-to-video@0.2.1 --prefix "${CACHE_DIR}" >&2
   else
     echo "svg-to-video is not installed" >&2
     return 1
@@ -160,13 +165,18 @@ function demo2cast() {
   local output="${2}"
   echo "Recording ${input} to ${output}" >&2
 
+  local command="playpty ${input} --ps1='${PLAY_PS1}' --cols=${COLS} --rows=${ROWS} --shell=${PLAY_SHELL}"
+  if [ "${#SIM_ENV[@]}" -ne 0 ]; then
+    command+=" --env ${SIM_ENV[*]}"
+  fi
+
   asciinema rec \
     "${output}" \
     --overwrite \
     --cols "${COLS}" \
     --rows "${ROWS}" \
     --env "" \
-    --command "playpty ${input} --ps1='${PLAY_PS1}' --cols=${COLS} --rows=${ROWS} --shell=${PLAY_SHELL} --env ${SIM_ENV[*]}"
+    --command "${command}"
 }
 
 # cast2svg converts the input cast file to the output svg file.
@@ -301,8 +311,17 @@ function convert() {
   esac
 }
 
+function install() {
+  for pkg in "${INSTALL[@]}"; do
+    "install_${pkg}"
+  done
+}
+
 function main() {
   if [[ "${#ARGS[*]}" -lt 1 ]]; then
+    if [ "${#INSTALL[@]}" -ne 0 ]; then
+      exit 0
+    fi
     usage
     exit 1
   fi
@@ -321,5 +340,6 @@ function main() {
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   args "$@"
+  install
   main
 fi
