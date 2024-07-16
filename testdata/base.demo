@@ -1,5 +1,5 @@
 # This is a test
-env
+echo $SHELL $WORK_DIR $ROOT_DIR
 
 # Test multiline
 echo \
