@@ -103,7 +103,7 @@ function install_playpty() {
   if command_exist playpty; then
     return 0
   elif command_exist pip3; then
-    pip3 install playpty==0.1.4 --target "${PLAYPTY_PATH}" >&2
+    pip3 install playpty==0.1.5 --target "${PLAYPTY_PATH}" >&2
   else
     echo "playpty is not installed" >&2
     return 1
@@ -163,6 +163,10 @@ function ext_replace() {
 function demo2cast() {
   local input="${1}"
   local output="${2}"
+  if [[ ! -f "${input}" ]]; then
+    echo "${input} does not exist"
+    return 1
+  fi
   echo "Recording ${input} to ${output}" >&2
 
   local command="playpty ${input} --ps1='${PLAY_PS1}' --cols=${COLS} --rows=${ROWS} --shell=${PLAY_SHELL}"
@@ -183,6 +187,10 @@ function demo2cast() {
 function cast2svg() {
   local input="${1}"
   local output="${2}"
+  if [[ ! -f "${input}" ]]; then
+    echo "${input} does not exist"
+    return 1
+  fi
   local args=()
   echo "Converting ${input} to ${output}" >&2
 
@@ -204,6 +212,10 @@ function cast2svg() {
 function svg2video() {
   local input="${1}"
   local output="${2}"
+  if [[ ! -f "${input}" ]]; then
+    echo "${input} does not exist"
+    return 1
+  fi
   echo "Converting ${input} to ${output}" >&2
 
   svg-to-video \
@@ -219,7 +231,10 @@ function svg2video() {
 function convert() {
   local input="${1}"
   local output="${2}"
-
+  if [[ ! -f "${input}" ]]; then
+    echo "${input} does not exist"
+    return 1
+  fi
   local castfile
   local viedofile
 
