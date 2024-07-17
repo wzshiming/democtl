@@ -1,6 +1,10 @@
 FROM ubuntu:24.04
 
 COPY --chmod=755 ./democtl.sh /usr/local/bin/democtl
+COPY --chmod=755 ./chrome-no-sandbox /usr/bin/chrome-no-sandbox
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chrome-no-sandbox \
+    PUPPETEER_SKIP_DOWNLOAD=true
 
 RUN apt-get install -U -y --no-install-recommends \
     ffmpeg \
@@ -13,6 +17,7 @@ RUN apt-get install -U -y --no-install-recommends \
     ca-certificates \
     wget \
     curl \
+    gnupg \
     && update-ca-certificates \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc \
@@ -20,6 +25,10 @@ RUN apt-get install -U -y --no-install-recommends \
     && apt-get install -U -y --no-install-recommends \
     docker-ce-cli \
     docker-compose-plugin \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=$(dpkg --print-architecture)] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/chrome.list \
+    && apt-get install -U -y --no-install-recommends \
+    google-chrome-stable \
     && /usr/local/bin/democtl \
     --install asciinema \
     --install playpty \
