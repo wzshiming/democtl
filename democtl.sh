@@ -103,7 +103,7 @@ function install_playpty() {
   if command_exist playpty; then
     return 0
   elif command_exist pip3; then
-    pip3 install playpty==0.1.5 --target "${PLAYPTY_PATH}" >&2
+    pip3 install playpty==0.2.1 --target "${PLAYPTY_PATH}" >&2
   else
     echo "playpty is not installed" >&2
     return 1
