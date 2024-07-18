@@ -10,8 +10,8 @@ clean:
 	@WORK_DIR=$(shell dirname $<) \
 	ROOT_DIR=$(shell pwd) \
 	./democtl.sh "$<" "$@" \
-		--ps1='\033[1;96m~/wzshiming/democtl\033[1;94m$$\033[0m ' \
-		--shell bash \
+		--ps1='' \
+		--shell zsh \
 		--env WORK_DIR \
 		--env ROOT_DIR
 
