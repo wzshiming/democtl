@@ -2,19 +2,24 @@
 
 This is a tool for recording terminal commands to svg or video.
 
-## Requirements
+[The old version](https://github.com/wzshiming/democtl/blob/master/democtl.sh) uses shell implementation and is no longer maintained,
+It has a large number of dependencies that make it difficult to deal with compatibility,
+and it uses too many languages, making it difficult to continue development, and is currently completely rewrite in Golang.
 
-- [python3 & pip3](https://www.python.org/)
-- [node & npm](https://nodejs.org/)
-- [ffmpeg](https://ffmpeg.org/)
+## Demo
 
-### Non-required but will install automatically
+[![color](https://github.com/wzshiming/democtl/raw/master/testdata/color.svg)](https://github.com/wzshiming/democtl/blob/master/testdata/color.demo)
 
+[![base](https://github.com/wzshiming/democtl/raw/master/testdata/base.svg)](https://github.com/wzshiming/democtl/blob/master/testdata/base.demo)
+
+## Inspiration
+
+- [The old version](https://github.com/wzshiming/democtl/blob/master/democtl.sh)
 - [asciinema](https://pypi.org/project/asciinema/)
 - [playpty](https://pypi.org/project/playpty/)
 - [svg-term-cli](https://www.npmjs.com/package/svg-term-cli)
 - [@wzshiming/svg-to-video](https://www.npmjs.com/package/@wzshiming/svg-to-video)
 
-## Demo
+## License
 
-[![asciicast](https://github.com/wzshiming/democtl/raw/master/testdata/base.svg)](https://github.com/wzshiming/democtl/blob/master/testdata/base.demo)
+Licensed under the MIT License. See [LICENSE](https://github.com/wzshiming/democtl/blob/master/LICENSE) for the full license text.
