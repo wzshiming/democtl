@@ -16,7 +16,11 @@ func NewCommand() *cobra.Command {
 		cols   uint16 = 86
 		input  string
 		output string
+		shell  = os.Getenv("SHELL")
 	)
+	if shell == "" {
+		shell = "sh"
+	}
 	cmd := &cobra.Command{
 		Use:     "record",
 		Aliases: []string{"rec"},
@@ -27,7 +31,7 @@ func NewCommand() *cobra.Command {
 			if input == "" {
 				return fmt.Errorf("no input file specified")
 			}
-			err := run(input, output, rows, cols)
+			err := run(input, output, shell, rows, cols)
 			if err != nil {
 				return err
 			}
@@ -38,10 +42,11 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().Uint16VarP(&cols, "cols", "c", cols, "number of columns")
 	cmd.Flags().StringVarP(&input, "input", "i", input, "input filename")
 	cmd.Flags().StringVarP(&output, "output", "o", output, "output filename")
+	cmd.Flags().StringVarP(&shell, "shell", "s", shell, "shell script")
 	return cmd
 }
 
-func run(inputPath, outputPath string, rows, cols uint16) error {
+func run(inputPath, outputPath, shell string, rows, cols uint16) error {
 	input, err := os.OpenFile(inputPath, os.O_RDONLY, 0)
 	if err != nil {
 		return err
@@ -59,7 +64,7 @@ func run(inputPath, outputPath string, rows, cols uint16) error {
 	}
 	defer outputFile.Close()
 
-	p := player.NewPlayer(rows, cols)
+	p := player.NewPlayer(shell, rows, cols)
 	err = p.Run(context.Background(), input, outputFile, filepath.Dir(inputPath))
 	if err != nil {
 		return err

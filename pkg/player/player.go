@@ -37,10 +37,10 @@ type Player struct {
 	typingInterval time.Duration
 }
 
-func NewPlayer(rows, cols uint16) *Player {
+func NewPlayer(shell string, rows, cols uint16) *Player {
 	return &Player{
 		buffer:         make([]byte, 1024),
-		shell:          os.Getenv("SHELL"),
+		shell:          shell,
 		debug:          os.Stdout,
 		rows:           rows,
 		cols:           cols,
