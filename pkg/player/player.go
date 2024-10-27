@@ -9,10 +9,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/google/shlex"
 	"github.com/wzshiming/democtl/pkg/cast"
+	"github.com/wzshiming/getch"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,15 +33,18 @@ type Player struct {
 	encoder *cast.Encoder
 
 	ptmx *os.File
+
+	typingInterval time.Duration
 }
 
 func NewPlayer(rows, cols uint16) *Player {
 	return &Player{
-		buffer: make([]byte, 1024),
-		shell:  os.Getenv("SHELL"),
-		debug:  os.Stdout,
-		rows:   rows,
-		cols:   cols,
+		buffer:         make([]byte, 1024),
+		shell:          os.Getenv("SHELL"),
+		debug:          os.Stdout,
+		rows:           rows,
+		cols:           cols,
+		typingInterval: time.Second / 10,
 	}
 }
 
@@ -209,27 +215,76 @@ func (p *Player) run(in io.Reader) error {
 				return err
 			}
 
-			haveNext = bytes.HasSuffix(line, []byte{'\\'})
-
-			time.Sleep(time.Second / 10)
-			for i := range line {
-				_, err = p.ptmx.Write(line[i : i+1])
-				if err != nil {
-					return err
-				}
-				err = p.readOutput()
-				if err != nil {
-					return err
-				}
-				time.Sleep(time.Second / 10)
+			c, err := p.builtinCommand(line)
+			if err != nil {
+				return err
+			}
+			if c {
+				continue
 			}
 
-			_, err = p.ptmx.Write([]byte{'\n'})
+			haveNext = bytes.HasSuffix(line, []byte{'\\'})
+			err = p.command(line)
 			if err != nil {
 				return err
 			}
 		}
 	}
+}
+
+func (p *Player) builtinCommand(line []byte) (bool, error) {
+	if !bytes.HasPrefix(line, []byte{'@'}) {
+		return false, nil
+	}
+	args, err := shlex.Split(string(line[1:]))
+	if err != nil {
+		return false, err
+	}
+	switch args[0] {
+	case "pause":
+		_, _, _ = getch.Getch()
+	case "sleep":
+		if len(args) != 2 {
+			return false, fmt.Errorf("sleep expects 2 arguments, got %d", len(args))
+		}
+		sleepDuration, err := strconv.ParseFloat(args[1], 64)
+		if err != nil {
+			return false, err
+		}
+		time.Sleep(time.Duration(sleepDuration) * time.Second)
+	case "typing-interval":
+		if len(args) != 2 {
+			return false, fmt.Errorf("typing-interval expects 2 arguments, got %d", len(args))
+		}
+		interval, err := strconv.ParseFloat(args[1], 64)
+		if err != nil {
+			return true, err
+		}
+		p.typingInterval = time.Duration(interval) * time.Second
+	default:
+		return false, fmt.Errorf("unknown command: %s", args[0])
+	}
+	return true, nil
+}
+
+func (p *Player) command(line []byte) error {
+	time.Sleep(p.typingInterval)
+	for i := range line {
+		_, err := p.ptmx.Write(line[i : i+1])
+		if err != nil {
+			return err
+		}
+		err = p.readOutput()
+		if err != nil {
+			return err
+		}
+		time.Sleep(p.typingInterval)
+	}
+	_, err := p.ptmx.Write([]byte{'\n'})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Player) Run(ctx context.Context, in io.Reader, out io.Writer, dir string) error {

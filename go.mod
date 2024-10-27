@@ -6,9 +6,11 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b
 	github.com/creack/pty v1.1.23
 	github.com/fogleman/gg v1.3.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
 	github.com/spf13/cobra v1.8.1
 	github.com/tdewolff/minify/v2 v2.21.1
+	github.com/wzshiming/getch v0.0.0-20201023133301-8e758c21cf27
 	golang.org/x/image v0.21.0
 	golang.org/x/sys v0.26.0
 )
