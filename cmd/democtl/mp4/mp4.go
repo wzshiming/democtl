@@ -3,10 +3,11 @@ package mp4
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 	"github.com/wzshiming/democtl/pkg/video"
-	"path/filepath"
 )
 
 func NewCommand() *cobra.Command {
@@ -62,18 +63,55 @@ func run(inputPath, outputPath string) error {
 		return err
 	}
 
-	fmt.Printf(`# Next step: run the following command to generate the video
+	stat, err := os.Stat(outputPath)
+	if err == nil {
+		if stat.IsDir() {
+			return fmt.Errorf("output directory already exists")
+		} else {
+			os.Remove(outputPath)
+		}
+	}
+
+	ffmpegPath, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		fmt.Printf(`# Next step: run the following command to generate the video
 ###############################
 ffmpeg \
   -f concat \
   -safe 0 \
-  -i %s/frames.txt \
+  -i %q \
   -vsync vfr \
   -pix_fmt yuv420p \
-  %s
-rm -rf %s
+  %q
+rm -rf %q
 ###############################
-`, rawDir, outputPath, rawDir)
+`, filepath.Join(rawDir, "frames.txt"), outputPath, rawDir)
+		return nil
+	}
+
+	args := []string{
+		"-f", "concat",
+		"-safe", "0",
+		"-i", filepath.Join(rawDir, "frames.txt"),
+		"-vsync", "vfr",
+		"-pix_fmt", "yuv420p",
+		outputPath,
+	}
+
+	err = exec.Command(ffmpegPath, args...).Run()
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(outputPath)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(rawDir)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
