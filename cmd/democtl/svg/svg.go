@@ -1,14 +1,14 @@
 package svg
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/wzshiming/democtl/pkg/minify"
-	"github.com/wzshiming/democtl/pkg/svg"
-	"path/filepath"
+	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/democtl/pkg/renderer/svg"
 )
 
 func NewCommand() *cobra.Command {
@@ -54,12 +54,7 @@ func run(inputPath, outputPath string) error {
 	}
 	defer outputFile.Close()
 
-	var output io.Writer = outputFile
-	mout := minify.SVGWithWriter(output)
-	defer mout.Close()
-	output = mout
-	c := svg.NewCanvas()
-	err = c.Run(input, output, false)
+	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, false), input)
 	if err != nil {
 		return err
 	}

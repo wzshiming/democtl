@@ -1,13 +1,15 @@
 package mp4
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/wzshiming/democtl/pkg/video"
+	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/democtl/pkg/renderer/video"
 )
 
 func NewCommand() *cobra.Command {
@@ -54,11 +56,7 @@ func run(inputPath, outputPath string) error {
 		return err
 	}
 
-	c, err := video.NewCanvas()
-	if err != nil {
-		return err
-	}
-	err = c.Run(input, rawDir, false)
+	err = renderer.Render(context.Background(), video.NewCanvas(rawDir, false), input)
 	if err != nil {
 		return err
 	}
@@ -98,9 +96,9 @@ rm -rf %q
 		outputPath,
 	}
 
-	err = exec.Command(ffmpegPath, args...).Run()
+	info, err := exec.Command(ffmpegPath, args...).CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("ffmpeg failed: %w:%s", err, string(info))
 	}
 
 	_, err = os.Stat(outputPath)
