@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/wzshiming/democtl/cmd/democtl/mp4"
+	"github.com/wzshiming/democtl/cmd/democtl/play"
 	"github.com/wzshiming/democtl/cmd/democtl/record"
 	"github.com/wzshiming/democtl/cmd/democtl/svg"
 )
@@ -21,6 +22,7 @@ func main() {
 
 	cmd.AddCommand(
 		record.NewCommand(),
+		play.NewCommand(),
 		svg.NewCommand(),
 		mp4.NewCommand(),
 	)
