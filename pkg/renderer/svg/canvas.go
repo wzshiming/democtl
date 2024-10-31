@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 	"time"
 
@@ -27,18 +26,10 @@ type canvas struct {
 	offsets []time.Duration
 
 	stylesIndex   map[string]string
-	stylesContent map[string]string
+	stylesContent []string
 
 	defsIndex   map[string]string
-	defsContent map[string]func()
-
-	bold               bool
-	dim                bool
-	italic             bool
-	underline          bool
-	strike             bool
-	underlineAndStrike bool
-	blink              bool
+	defsContent []string
 }
 
 const (
@@ -69,16 +60,19 @@ func (c *canvas) Initialize(ctx context.Context, x, y int, width, height int) er
 }
 
 func (c *canvas) Finish(ctx context.Context) error {
-	err := c.addStyles()
-	if err != nil {
-		return err
-	}
-	err = c.addDefs()
+
+	c.svg.Gend()
+
+	err := c.addDefs()
 	if err != nil {
 		return err
 	}
 
-	c.svg.Gend()
+	err = c.addStyles()
+	if err != nil {
+		return err
+	}
+
 	c.svg.End()
 
 	err = c.output.Close()
@@ -103,50 +97,29 @@ func (c *canvas) Frame(ctx context.Context, index int, offset time.Duration) (re
 }
 
 func (c *canvas) getFG(fg string) string {
-	if c.stylesIndex == nil {
-		c.stylesIndex = map[string]string{}
-		c.stylesContent = map[string]string{}
-	}
-	id, ok := c.stylesIndex[fg]
-	if ok {
-		return id
-	}
-	id = encodeIndex(uint64(len(c.stylesContent)))
-
-	c.stylesIndex[fg] = id
-
-	c.stylesContent[id] = fmt.Sprintf(`
+	return c.getStyles(fg, func(id string) string {
+		return fmt.Sprintf(`
 .%s {
   fill: %s;
 }
 	`, id, fg)
-
-	return id
+	})
 }
 
 func (c *canvas) getBG(bg string) string {
-	if c.defsIndex == nil {
-		c.defsIndex = map[string]string{}
-		c.defsContent = map[string]func(){}
-	}
-
-	id, ok := c.defsIndex[bg]
-	if ok {
-		return id
-	}
-	id = encodeIndex(uint64(len(c.defsContent)))
-
-	c.defsIndex[bg] = id
-
-	c.defsContent[id] = func() {
-		c.svg.Filter(id)
-		defer c.svg.Fend()
-
-		c.svg.FeFlood(svg.Filterspec{Result: "bg"}, bg, 1.0)
-		c.svg.FeMerge([]string{`bg`, `SourceGraphic`})
-	}
-
-	return id
+	return c.getDefs(bg, func(id string) string {
+		buf := bytes.NewBuffer(nil)
+		fmt.Fprintf(buf, `
+<filter id="%s">
+<feFlood result="bg" flood-color="%s" flood-opacity="1" />
+<feMerge>
+  <feMergeNode in="bg" />
+  <feMergeNode in="SourceGraphic" />
+</feMerge>
+</filter>
+`, id, bg)
+		return buf.String()
+	})
 }
 
 func (c *canvas) paddingLeft() int {
@@ -184,66 +157,8 @@ func (c *canvas) createWindow() {
 
 func (c *canvas) addStyles() error {
 	styles := []string{}
-
-	keys := make([]string, 0, len(c.stylesContent))
-	for k := range c.stylesContent {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		styles = append(styles, c.stylesContent[key])
-	}
-
-	if c.bold {
-		styles = append(styles, `
-.bold {
-  font-weight: bold;
-}
-`)
-	}
-	if c.italic {
-		styles = append(styles, `
-.italic {
-  font-style: italic;
-}
-`)
-	}
-	if c.underline {
-		styles = append(styles, `
-.underline {
-  text-decoration: underline;
-}
-`)
-	}
-
-	if c.strike {
-		styles = append(styles, `
-.strike {
-  text-decoration: line-through;
-}
-`)
-	}
-
-	if c.underlineAndStrike {
-		styles = append(styles, `
-.underline-strike {
-  text-decoration: underline line-through;
-}
-`)
-	}
-
-	if c.blink {
-		styles = append(styles, `
-.blink {
-  animation: blink-animation 1s steps(2, start) infinite;
-}
-@keyframes blink-animation {
-  to {
-    visibility: hidden;
-  }
-}
-`)
+	for _, content := range c.stylesContent {
+		styles = append(styles, content)
 	}
 
 	styles = append(styles,
@@ -252,15 +167,6 @@ text {
   fill: %s;
 }
 `, c.getColor(vt10x.DefaultFG)),
-	)
-
-	styles = append(styles,
-		fmt.Sprintf(`
-.cursor {
-  fill: %s;
-  opacity: 0.8;
-}
-`, c.getColor(vt10x.DefaultCursor)),
 	)
 
 	styles = append(styles,
@@ -290,26 +196,49 @@ func (c *canvas) addDefs() error {
 	c.svg.Def()
 	defer c.svg.DefEnd()
 
-	if c.dim {
-		c.svg.Filter("dim")
-		c.svg.FeComponentTransfer()
-		c.svg.FeFuncLinear("R", 0.5, 0)
-		c.svg.FeFuncLinear("G", 0.5, 0)
-		c.svg.FeFuncLinear("B", 0.5, 0)
-		c.svg.FeCompEnd()
-		c.svg.Fend()
-	}
-
-	keys := make([]string, 0, len(c.defsContent))
-	for k := range c.defsContent {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		c.defsContent[key]()
+	for _, d := range c.defsContent {
+		c.svg.Writer.Write([]byte(d))
 	}
 	return nil
+}
+
+func (c *canvas) useDef(id string, x, y int) {
+	fmt.Fprintf(c.svg.Writer, `<use href="#%s" x="%d" y="%d"/>`, id, x, y)
+}
+
+func (c *canvas) getDefs(unique string, f func(id string) string) string {
+	if c.defsIndex == nil {
+		c.defsIndex = map[string]string{}
+	}
+
+	id, ok := c.defsIndex[unique]
+	if ok {
+		return id
+	}
+	id = encodeIndex(uint64(len(c.defsContent)))
+
+	c.defsIndex[unique] = id
+
+	c.defsContent = append(c.defsContent, f(id))
+
+	return id
+}
+
+func (c *canvas) getStyles(unique string, f func(id string) string) string {
+	if c.stylesIndex == nil {
+		c.stylesIndex = map[string]string{}
+	}
+	id, ok := c.stylesIndex[unique]
+	if ok {
+		return id
+	}
+	id = encodeIndex(uint64(len(c.stylesContent)))
+
+	c.stylesIndex[unique] = id
+
+	c.stylesContent = append(c.stylesContent, f(id))
+
+	return id
 }
 
 func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
@@ -330,34 +259,87 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 
 	if mode&vt10x.AttrUnderline != 0 {
 		if mode&vt10x.AttrStrike != 0 {
-			classes = append(classes, `underline-strike`)
-			c.underlineAndStrike = true
+			id := c.getStyles("underline-strike", func(id string) string {
+				return fmt.Sprintf(`
+.%s {
+  text-decoration: underline line-through;
+}
+`, id)
+			})
+			classes = append(classes, id)
 		} else {
-			classes = append(classes, `underline`)
-			c.underline = true
+			id := c.getStyles("underline", func(id string) string {
+				return fmt.Sprintf(`
+.%s {
+  text-decoration: underline;
+}
+`, id)
+			})
+			classes = append(classes, id)
 		}
 	} else {
 		if mode&vt10x.AttrStrike != 0 {
-			classes = append(classes, `strike`)
-			c.strike = true
+			id := c.getStyles("strike", func(id string) string {
+				return fmt.Sprintf(`
+.%s {
+  text-decoration: line-through;
+}
+`, id)
+			})
+			classes = append(classes, id)
 		}
 	}
 
 	if mode&vt10x.AttrDim != 0 {
-		filters = append(filters, `url(#dim)`)
-		c.dim = true
+		id := c.getDefs("dim", func(id string) string {
+			buf := bytes.NewBuffer(nil)
+			fmt.Fprintf(buf, `
+<filter id="%s">
+<feComponentTransfer>
+  <feFuncR type="linear" slope=".5" intercept="0" />
+  <feFuncG type="linear" slope=".5" intercept="0" />
+  <feFuncB type="linear" slope=".5" intercept="0" />
+</feComponentTransfer>
+</filter>
+`, id)
+			return buf.String()
+		})
+		filters = append(filters, fmt.Sprintf(`url(#%s)`, id))
 	}
 	if mode&vt10x.AttrBold != 0 {
-		classes = append(classes, `bold`)
-		c.bold = true
+		id := c.getStyles("bold", func(id string) string {
+			return fmt.Sprintf(`
+.%s {
+  font-weight: bold;
+}
+	`, id)
+		})
+		classes = append(classes, id)
 	}
 	if mode&vt10x.AttrItalic != 0 {
-		classes = append(classes, `italic`)
-		c.italic = true
+		id := c.getStyles("italic", func(id string) string {
+			return fmt.Sprintf(`
+.%s {
+  font-style: italic;
+}
+`, id)
+		})
+		classes = append(classes, id)
 	}
 	if mode&vt10x.AttrBlink != 0 {
-		classes = append(classes, `blink`)
-		c.blink = true
+		id := c.getStyles("blink", func(id string) string {
+			return fmt.Sprintf(`
+.%s {
+  animation: blink-animation 1s steps(2, start) infinite;
+}
+@keyframes blink-animation {
+  to {
+    visibility: hidden;
+  }
+}
+`, id)
+		})
+		classes = append(classes, id)
 	}
 
 	out := []string{}
