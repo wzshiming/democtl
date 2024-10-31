@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/hinshun/vt10x"
 	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/vt10x"
 	"golang.org/x/image/font"
 )
 
 type canvas struct {
-	getColor func(i int) string
+	getColor func(i vt10x.Color) string
 	noWindow bool
 
 	regular       font.Face
@@ -43,7 +43,7 @@ func NewCanvas(output string, noWindow bool) renderer.Renderer {
 	return &canvas{
 		output:   output,
 		noWindow: noWindow,
-		getColor: color.DefaultColors().GetColorForSVG,
+		getColor: color.DefaultColors().GetColorForHex,
 	}
 }
 
@@ -72,6 +72,7 @@ func (c *canvas) Frame(ctx context.Context, index int, offset time.Duration) (re
 	return &frame{
 		canvas:    c,
 		dc:        dc,
+		offset:    offset,
 		heightOff: c.paddingTop(),
 		widthOff:  c.paddingLeft(),
 		finish: func() error {
@@ -126,7 +127,7 @@ func (c *canvas) paddingBottom() int {
 }
 
 func (c *canvas) createWindow(dc *gg.Context) {
-	bg := c.getColor(int(vt10x.DefaultBG))
+	bg := c.getColor(vt10x.DefaultBG)
 	if c.noWindow {
 		dc.SetHexColor(bg)
 		dc.Clear()

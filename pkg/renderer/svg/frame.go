@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/vt10x"
 )
 
 type frame struct {
@@ -23,7 +23,7 @@ func (f *frame) offsetY(y int) int {
 	return f.heightOff + y*rowHeight
 }
 
-func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg renderer.Color, mode int16) error {
+func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
 	f.svg.Textspan(
 		f.offsetX(x),
 		f.offsetY(y),

@@ -2,17 +2,20 @@ package video
 
 import (
 	"context"
+	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/hinshun/vt10x"
+	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/fonts"
-	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/vt10x"
 )
 
 type frame struct {
 	*canvas
 
 	dc *gg.Context
+
+	offset time.Duration
 
 	heightOff, widthOff int
 
@@ -32,41 +35,35 @@ func (f *frame) offsetY(y int) float64 {
 	return float64(f.heightOff + y*rowHeight)
 }
 
-func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg renderer.Color, mode int16) error {
+func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
+	if mode&vt10x.AttrReverse != 0 {
+		fg, bg = bg, fg
+	}
+
+	colorStr := f.getColor(fg)
+	bgColorStr := f.getColor(bg)
+
+	if mode&vt10x.AttrDim != 0 {
+		if fg != vt10x.DefaultFG {
+			r, g, b := color.ParseHexColor(colorStr)
+			colorStr = color.FormatHexColor(r/2, g/2, b/2)
+		}
+	}
+
 	offsetX := f.offsetX(x)
 	offsetY := f.offsetY(y)
 	width, _ := f.dc.MeasureString(text)
 
 	if bg != vt10x.DefaultBG {
-		bgColorStr := f.getColor(int(bg))
 		f.dc.SetHexColor(bgColorStr)
 		f.dc.DrawRectangle(offsetX, offsetY-rowHeight+7, width*colWidth, rowHeight)
 		f.dc.Fill()
 	}
 
-	for i, r := range text {
-		err := f.drawText(ctx, x+i, y, r, fg, bg, mode)
-		if err != nil {
-			return err
-		}
-	}
-
-	if mode&0b00000010 != 0 {
-		f.dc.DrawLine(offsetX, offsetY+5, offsetX+width, offsetY+5)
-		f.dc.Stroke()
-	}
-	return nil
-}
-
-func (f *frame) drawText(ctx context.Context, x, y int, text rune, fg, bg renderer.Color, mode int16) error {
-	offsetX := f.offsetX(x)
-	offsetY := f.offsetY(y)
-
-	colorStr := f.getColor(int(fg))
-
+	f.dc.SetHexColor(colorStr)
 	var err error
-	if mode&0b00000100 != 0 {
-		if mode&0b00010000 != 0 {
+	if mode&vt10x.AttrBold != 0 {
+		if mode&vt10x.AttrItalic != 0 {
 			if f.boldItalic == nil {
 				f.boldItalic, err = fonts.LoadFontFace(fonts.BoldItalic, opt)
 				if err != nil {
@@ -84,7 +81,7 @@ func (f *frame) drawText(ctx context.Context, x, y int, text rune, fg, bg render
 			f.dc.SetFontFace(f.bold)
 		}
 	} else {
-		if mode&0b00010000 != 0 {
+		if mode&vt10x.AttrItalic != 0 {
 			if f.regularItalic == nil {
 				f.regularItalic, err = fonts.LoadFontFace(fonts.RegularItalic, opt)
 				if err != nil {
@@ -103,11 +100,28 @@ func (f *frame) drawText(ctx context.Context, x, y int, text rune, fg, bg render
 		}
 	}
 
-	// TODO: blink
-	//if mode&0b00100000 != 0 {
-	//}
+	for i, r := range text {
+		err := f.drawText(ctx, x+i, y, r, fg, bg, mode)
+		if err != nil {
+			return err
+		}
+	}
 
-	f.dc.SetHexColor(colorStr)
+	if mode&vt10x.AttrUnderline != 0 {
+		f.dc.DrawLine(offsetX, offsetY+5, offsetX+width, offsetY+5)
+		f.dc.Stroke()
+	}
+	if mode&vt10x.AttrStrike != 0 {
+		f.dc.DrawLine(offsetX, offsetY, offsetX+width, offsetY)
+		f.dc.Stroke()
+	}
+	return nil
+}
+
+func (f *frame) drawText(ctx context.Context, x, y int, text rune, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
+	offsetX := f.offsetX(x)
+	offsetY := f.offsetY(y)
+
 	f.dc.DrawStringAnchored(string(text), offsetX, offsetY, 0, 0)
 
 	return nil
@@ -117,7 +131,7 @@ func (f *frame) DrawCursor(ctx context.Context, x, y int) error {
 	offsetX := f.offsetX(x)
 	offsetY := f.offsetY(y)
 
-	f.dc.SetHexColor(f.getColor(int(vt10x.DefaultCursor)) + "aa")
+	f.dc.SetHexColor(f.getColor(vt10x.DefaultCursor) + "aa")
 	f.dc.DrawRectangle(
 		offsetX+3, offsetY-20,
 		colWidth, rowHeight)

@@ -3,18 +3,11 @@ package renderer
 import (
 	"context"
 	"io"
+	"strings"
 	"time"
 
-	"github.com/hinshun/vt10x"
 	"github.com/wzshiming/democtl/pkg/cast"
-)
-
-type Color = vt10x.Color
-
-const (
-	DefaultBG     = vt10x.DefaultBG
-	DefaultFG     = vt10x.DefaultFG
-	DefaultCursor = vt10x.DefaultCursor
+	"github.com/wzshiming/vt10x"
 )
 
 type Renderer interface {
@@ -24,7 +17,7 @@ type Renderer interface {
 }
 
 type Frame interface {
-	DrawText(ctx context.Context, x, y int, text string, fg, bg Color, mode int16) error
+	DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error
 	DrawCursor(ctx context.Context, x, y int) error
 	Finish(ctx context.Context) error
 }
@@ -104,6 +97,20 @@ func frames(c *renderContent) (err error) {
 	return nil
 }
 
+func isEmpty(text string, bg vt10x.Color, mode vt10x.AttrFlag) bool {
+	if mode&vt10x.AttrHidden != 0 {
+		return true
+	}
+	empty := bg == vt10x.DefaultBG && !strings.ContainsFunc(text, func(r rune) bool {
+		return r != ' '
+	})
+	if empty {
+		return true
+	}
+
+	return false
+}
+
 func frame(c *renderContent, term vt10x.Terminal, frame Frame) (err error) {
 	defer func() {
 		if err == nil {
@@ -125,16 +132,18 @@ func frame(c *renderContent, term vt10x.Terminal, frame Frame) (err error) {
 				cell.BG != lastColorBG ||
 				cell.Mode != lastMode {
 				if f != "" {
-					err := frame.DrawText(c.ctx,
-						lastColumn,
-						row,
-						f,
-						lastColorFG,
-						lastColorBG,
-						lastMode,
-					)
-					if err != nil {
-						return err
+					if !isEmpty(f, lastColorBG, lastMode) {
+						err = frame.DrawText(c.ctx,
+							lastColumn,
+							row,
+							f,
+							lastColorFG,
+							lastColorBG,
+							lastMode,
+						)
+						if err != nil {
+							return err
+						}
 					}
 					f = ""
 				}
@@ -147,16 +156,18 @@ func frame(c *renderContent, term vt10x.Terminal, frame Frame) (err error) {
 		}
 
 		if f != "" {
-			err := frame.DrawText(c.ctx,
-				lastColumn,
-				row,
-				f,
-				lastColorFG,
-				lastColorBG,
-				lastMode,
-			)
-			if err != nil {
-				return err
+			if !isEmpty(f, lastColorBG, lastMode) {
+				err = frame.DrawText(c.ctx,
+					lastColumn,
+					row,
+					f,
+					lastColorFG,
+					lastColorBG,
+					lastMode,
+				)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

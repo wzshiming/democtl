@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/wzshiming/democtl/pkg/player"
-	"path/filepath"
 )
 
 func NewCommand() *cobra.Command {
