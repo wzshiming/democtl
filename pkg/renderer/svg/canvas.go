@@ -13,13 +13,14 @@ import (
 	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/minify"
 	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/vt10x"
 )
 
 type canvas struct {
 	svg      *svg.SVG
 	output   io.WriteCloser
 	noWindow bool
-	getColor func(i int) string
+	getColor func(i vt10x.Color) string
 
 	width, height int
 
@@ -31,10 +32,13 @@ type canvas struct {
 	defsIndex   map[string]string
 	defsContent map[string]func()
 
-	bold      bool
-	italic    bool
-	underline bool
-	blink     bool
+	bold               bool
+	dim                bool
+	italic             bool
+	underline          bool
+	strike             bool
+	underlineAndStrike bool
+	blink              bool
 }
 
 const (
@@ -47,7 +51,7 @@ func NewCanvas(output io.Writer, noWindow bool) renderer.Renderer {
 	return &canvas{
 		output:   minify.SVGWithWriter(output),
 		noWindow: noWindow,
-		getColor: color.DefaultColors().GetColorForSVG,
+		getColor: color.DefaultColors().GetColorForHex,
 	}
 }
 
@@ -166,13 +170,13 @@ func (c *canvas) paddingBottom() int {
 
 func (c *canvas) createWindow() {
 	if c.noWindow {
-		c.svg.Rect(0, 0, c.paddingRight(), c.paddingBottom(), "fill:"+c.getColor(int(renderer.DefaultBG)))
+		c.svg.Rect(0, 0, c.paddingRight(), c.paddingBottom(), "fill:"+c.getColor(vt10x.DefaultBG))
 		return
 	}
 	windowRadius := 5
 	buttonRadius := 7
 	buttonColors := [3]string{"#ff5f58", "#ffbd2e", "#18c132"}
-	c.svg.Roundrect(0, 0, c.paddingRight(), c.paddingBottom(), windowRadius, windowRadius, "fill:"+c.getColor(int(renderer.DefaultBG)))
+	c.svg.Roundrect(0, 0, c.paddingRight(), c.paddingBottom(), windowRadius, windowRadius, "fill:"+c.getColor(vt10x.DefaultBG))
 	for i := range buttonColors {
 		c.svg.Circle((i*(padding+buttonRadius/2))+padding, padding, buttonRadius, fmt.Sprintf("fill:%s", buttonColors[i]))
 	}
@@ -213,6 +217,22 @@ func (c *canvas) addStyles() error {
 `)
 	}
 
+	if c.strike {
+		styles = append(styles, `
+.strike {
+  text-decoration: line-through;
+}
+`)
+	}
+
+	if c.underlineAndStrike {
+		styles = append(styles, `
+.underline-strike {
+  text-decoration: underline line-through;
+}
+`)
+	}
+
 	if c.blink {
 		styles = append(styles, `
 .blink {
@@ -231,7 +251,7 @@ func (c *canvas) addStyles() error {
 text {
   fill: %s;
 }
-`, c.getColor(int(renderer.DefaultFG))),
+`, c.getColor(vt10x.DefaultFG)),
 	)
 
 	styles = append(styles,
@@ -240,7 +260,7 @@ text {
   fill: %s;
   opacity: 0.8;
 }
-`, c.getColor(int(renderer.DefaultCursor))),
+`, c.getColor(vt10x.DefaultCursor)),
 	)
 
 	styles = append(styles,
@@ -270,6 +290,16 @@ func (c *canvas) addDefs() error {
 	c.svg.Def()
 	defer c.svg.DefEnd()
 
+	if c.dim {
+		c.svg.Filter("dim")
+		c.svg.FeComponentTransfer()
+		c.svg.FeFuncLinear("R", 0.5, 0)
+		c.svg.FeFuncLinear("G", 0.5, 0)
+		c.svg.FeFuncLinear("B", 0.5, 0)
+		c.svg.FeCompEnd()
+		c.svg.Fend()
+	}
+
 	keys := make([]string, 0, len(c.defsContent))
 	for k := range c.defsContent {
 		keys = append(keys, k)
@@ -282,31 +312,50 @@ func (c *canvas) addDefs() error {
 	return nil
 }
 
-func (c *canvas) toGlyph(fg, bg renderer.Color, mode int16) []string {
+func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 	classes := []string{}
 	filters := []string{}
 
-	if fg != renderer.DefaultFG {
-		classes = append(classes, c.getFG(c.getColor(int(fg))))
+	if mode&vt10x.AttrReverse != 0 {
+		fg, bg = bg, fg
 	}
 
-	if bg != renderer.DefaultBG {
-		filters = append(filters, fmt.Sprintf(`url(#%s)`, c.getBG(c.getColor(int(bg)))))
+	if fg != vt10x.DefaultFG {
+		classes = append(classes, c.getFG(c.getColor(fg)))
 	}
 
-	if mode&0b00000010 != 0 {
-		classes = append(classes, `underline`)
-		c.underline = true
+	if bg != vt10x.DefaultBG {
+		filters = append(filters, fmt.Sprintf(`url(#%s)`, c.getBG(c.getColor(bg))))
 	}
-	if mode&0b00000100 != 0 {
+
+	if mode&vt10x.AttrUnderline != 0 {
+		if mode&vt10x.AttrStrike != 0 {
+			classes = append(classes, `underline-strike`)
+			c.underlineAndStrike = true
+		} else {
+			classes = append(classes, `underline`)
+			c.underline = true
+		}
+	} else {
+		if mode&vt10x.AttrStrike != 0 {
+			classes = append(classes, `strike`)
+			c.strike = true
+		}
+	}
+
+	if mode&vt10x.AttrDim != 0 {
+		filters = append(filters, `url(#dim)`)
+		c.dim = true
+	}
+	if mode&vt10x.AttrBold != 0 {
 		classes = append(classes, `bold`)
 		c.bold = true
 	}
-	if mode&0b00010000 != 0 {
+	if mode&vt10x.AttrItalic != 0 {
 		classes = append(classes, `italic`)
 		c.italic = true
 	}
-	if mode&0b00100000 != 0 {
+	if mode&vt10x.AttrBlink != 0 {
 		classes = append(classes, `blink`)
 		c.blink = true
 	}

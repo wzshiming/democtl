@@ -1,7 +1,7 @@
 package color
 
 import (
-	"github.com/hinshun/vt10x"
+	"github.com/wzshiming/vt10x"
 )
 
 type Colors struct {
@@ -27,13 +27,13 @@ type Colors struct {
 	CursorColor string
 }
 
-func (c Colors) GetColorForSVG(i int) string {
+func (c Colors) GetColorForHex(i vt10x.Color) string {
 	switch i {
-	case int(vt10x.DefaultBG):
+	case vt10x.DefaultBG:
 		return c.Background
-	case int(vt10x.DefaultFG):
+	case vt10x.DefaultFG:
 		return c.Foreground
-	case int(vt10x.DefaultCursor):
+	case vt10x.DefaultCursor:
 		return c.CursorColor
 	case 0:
 		return c.Color0
