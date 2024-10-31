@@ -16,7 +16,7 @@ for clbg in {100..107} ; do \
   echo -en "\e[${clbg}m\t^[${clbg}m \e[0m"; \
 done
 echo
-for attr in 1 2 4 5 7 ; do \
-  echo -en "\e[31;${attr}m\t^[31;${attr}m \e[0m"; \
+for attr in 1 2 3 4 5 7 8 9 ; do \
+  echo -en "\e[31;${attr}m ^[31;${attr}m \e[0m"; \
 done
 echo
