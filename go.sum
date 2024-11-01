@@ -23,8 +23,8 @@ github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739 h1:IkjBCtQOOjIn03
 github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739/go.mod h1:XPuWBzvdUzhCuxWO1ojpXsyzsA5bFoS3tO/Q3kFuTG8=
 github.com/wzshiming/getch v0.0.0-20201023133301-8e758c21cf27 h1:jKLZ5tGpOZRid6GpBbDmP4BiooSF5zDd7Cg9jHCN4Yk=
 github.com/wzshiming/getch v0.0.0-20201023133301-8e758c21cf27/go.mod h1:TYK5eJtSD5cVebob9fE7D3jR1fbRU1EwkoPzbLWsOAk=
-github.com/wzshiming/vt10x v0.0.0-20241031051902-f6e209d9d2ab h1:FE+0tlDe/AJRVmjuE3kUR+Wdsr2Gu1okstTnQ++7U7w=
-github.com/wzshiming/vt10x v0.0.0-20241031051902-f6e209d9d2ab/go.mod h1:4obtlnMWki8CLzQVbIi/ebc20LCB731l2jA61fpMRec=
+github.com/wzshiming/vt10x v0.0.0-20241101101858-9e60c576db02 h1:Ag1XLglWz8o4LuYyYoaH78TlyZ9BPNJUQB2gLcWLmvE=
+github.com/wzshiming/vt10x v0.0.0-20241101101858-9e60c576db02/go.mod h1:4obtlnMWki8CLzQVbIi/ebc20LCB731l2jA61fpMRec=
 golang.org/x/image v0.21.0 h1:c5qV36ajHpdj4Qi0GnE0jUc/yuo33OLFaa0d+crTD5s=
 golang.org/x/image v0.21.0/go.mod h1:vUbsLavqK/W303ZroQQVKQ+Af3Yl6Uz1Ppu5J/cLz78=
 golang.org/x/sys v0.26.0 h1:KHjCJyddX0LoSTb3J+vWpupP9p0oznkqVk/IfjymZbo=

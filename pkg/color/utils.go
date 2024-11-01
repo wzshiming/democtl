@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func ParseHexColor(x string) (r, g, b int) {
+func ParseHexColor(x string) (r, g, b uint8) {
 	x = strings.TrimPrefix(x, "#")
 	if len(x) == 3 {
 		format := "%1x%1x%1x"
@@ -21,6 +21,6 @@ func ParseHexColor(x string) (r, g, b int) {
 	return
 }
 
-func FormatHexColor(r, g, b int) string {
+func FormatHexColor(r, g, b uint8) string {
 	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }

@@ -86,6 +86,12 @@ func (c Colors) GetColorForHex(i vt10x.Color) string {
 	case 15:
 		return c.Color15
 	}
+	if !i.ANSI() {
+		r, g, b, ok := i.RGB()
+		if ok {
+			return FormatHexColor(r, g, b)
+		}
+	}
 	return ""
 }
 
