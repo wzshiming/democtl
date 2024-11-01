@@ -8,16 +8,13 @@ import (
 	"strings"
 	"time"
 
-	svg "github.com/ajstarks/svgo"
 	"github.com/wzshiming/democtl/pkg/color"
-	"github.com/wzshiming/democtl/pkg/minify"
 	"github.com/wzshiming/democtl/pkg/renderer"
 	"github.com/wzshiming/vt10x"
 )
 
 type canvas struct {
-	svg      *svg.SVG
-	output   io.WriteCloser
+	output   io.Writer
 	noWindow bool
 	getColor func(i vt10x.Color) string
 
@@ -40,7 +37,7 @@ const (
 
 func NewCanvas(output io.Writer, noWindow bool) renderer.Renderer {
 	return &canvas{
-		output:   minify.SVGWithWriter(output),
+		output:   newMinifyWriter(output),
 		noWindow: noWindow,
 		getColor: color.DefaultColors().GetColorForHex,
 	}
@@ -50,18 +47,18 @@ func (c *canvas) Initialize(ctx context.Context, x, y int, width, height int) er
 	c.width = width
 	c.height = height
 
-	c.svg = svg.New(c.output)
+	fmt.Fprintf(c.output, `<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg">`, c.paddingRight(), c.paddingBottom())
 
-	c.svg.Start(c.paddingRight(), c.paddingBottom())
 	c.createWindow()
 
-	c.svg.Group(fmt.Sprintf(`class="main"`))
+	fmt.Fprintf(c.output, `<g>`)
+
 	return nil
 }
 
 func (c *canvas) Finish(ctx context.Context) error {
 
-	c.svg.Gend()
+	fmt.Fprintf(c.output, `</g>`)
 
 	err := c.addDefs()
 	if err != nil {
@@ -73,24 +70,19 @@ func (c *canvas) Finish(ctx context.Context) error {
 		return err
 	}
 
-	c.svg.End()
-
-	err = c.output.Close()
-	if err != nil {
-		return err
-	}
+	fmt.Fprintf(c.output, `</svg>`)
 	return nil
 }
 
 func (c *canvas) Frame(ctx context.Context, index int, offset time.Duration) (renderer.Frame, error) {
 	c.offsets = append(c.offsets, offset)
-	c.svg.Gtransform(fmt.Sprintf("translate(%d)", c.paddingRight()*index))
+	fmt.Fprintf(c.output, `<svg x="%d">`, c.paddingRight()*index)
 	return &frame{
 		canvas:    c,
 		heightOff: c.paddingTop(),
 		widthOff:  c.paddingLeft(),
 		finish: func() error {
-			c.svg.Gend()
+			fmt.Fprintf(c.output, `</svg>`)
 			return nil
 		},
 	}, nil
@@ -102,7 +94,7 @@ func (c *canvas) getFG(fg string) string {
 .%s {
   fill: %s;
 }
-	`, id, fg)
+`, id, fg)
 	})
 }
 
@@ -111,10 +103,10 @@ func (c *canvas) getBG(bg string) string {
 		buf := bytes.NewBuffer(nil)
 		fmt.Fprintf(buf, `
 <filter id="%s">
-<feFlood result="bg" flood-color="%s" flood-opacity="1" />
+<feFlood result="bg" flood-color="%s"/>
 <feMerge>
-  <feMergeNode in="bg" />
-  <feMergeNode in="SourceGraphic" />
+<feMergeNode in="bg"/>
+<feMergeNode in="SourceGraphic"/>
 </feMerge>
 </filter>
 `, id, bg)
@@ -143,15 +135,20 @@ func (c *canvas) paddingBottom() int {
 
 func (c *canvas) createWindow() {
 	if c.noWindow {
-		c.svg.Rect(0, 0, c.paddingRight(), c.paddingBottom(), "fill:"+c.getColor(vt10x.DefaultBG))
+		fmt.Fprintf(c.output, `<rect width="%d" height="%d" style="fill:%s"/>`,
+			c.paddingRight(), c.paddingBottom(), c.getColor(vt10x.DefaultBG))
 		return
 	}
 	windowRadius := 5
 	buttonRadius := 7
 	buttonColors := [3]string{"#ff5f58", "#ffbd2e", "#18c132"}
-	c.svg.Roundrect(0, 0, c.paddingRight(), c.paddingBottom(), windowRadius, windowRadius, "fill:"+c.getColor(vt10x.DefaultBG))
+
+	fmt.Fprintf(c.output, `<rect width="%d" height="%d" rx="%d" ry="%d" style="fill:%s"/>`,
+		c.paddingRight(), c.paddingBottom(), windowRadius, windowRadius, c.getColor(vt10x.DefaultBG))
 	for i := range buttonColors {
-		c.svg.Circle((i*(padding+buttonRadius/2))+padding, padding, buttonRadius, fmt.Sprintf("fill:%s", buttonColors[i]))
+		fmt.Fprintf(c.output, `<circle cx="%d" cy="%d" r="%d" style="fill:%s"/>`,
+			(i*(padding+buttonRadius/2))+padding, padding, buttonRadius, buttonColors[i],
+		)
 	}
 }
 
@@ -163,7 +160,19 @@ func (c *canvas) addStyles() error {
 
 	styles = append(styles,
 		fmt.Sprintf(`
+symbol {
+  overflow: visible;
+}
+`),
+	)
+
+	styles = append(styles,
+		fmt.Sprintf(`
 text {
+  font-family: Monaco,Consolas,Menlo,monospace;
+  font-size: 20px;
+  dominant-baseline: hanging;
+  text-anchor: start;
   fill: %s;
 }
 `, c.getColor(vt10x.DefaultFG)),
@@ -171,39 +180,40 @@ text {
 
 	styles = append(styles,
 		fmt.Sprintf(`
-.main {
+g {
   animation-duration: %.2fs;
   animation-iteration-count: infinite;
   animation-name: k;
   animation-timing-function: steps(1,end);
-  font-family: Monaco,Consolas,Menlo,'Bitstream Vera Sans Mono','Powerline Symbols',monospace;
-  font-size: 20px;
 }
 `, float64(c.offsets[len(c.offsets)-1])/float64(time.Second)),
 	)
 
 	styles = append(styles, generateKeyframes(c.offsets, int32(c.paddingRight())))
 
-	allCss, err := minify.CSSWithString(strings.Join(styles, "\n"))
+	fmt.Fprintf(c.output, `<style type="text/css">`)
+	defer fmt.Fprintf(c.output, `</style>`)
+
+	s, err := minifyCSS(strings.Join(styles, ""))
 	if err != nil {
 		return err
 	}
-	c.svg.Style("text/css", allCss)
+	c.output.Write([]byte(s))
 	return nil
 }
 
 func (c *canvas) addDefs() error {
-	c.svg.Def()
-	defer c.svg.DefEnd()
+	fmt.Fprintf(c.output, `<defs>`)
+	defer fmt.Fprintf(c.output, `</defs>`)
 
 	for _, d := range c.defsContent {
-		c.svg.Writer.Write([]byte(d))
+		c.output.Write([]byte(d))
 	}
 	return nil
 }
 
 func (c *canvas) useDef(id string, x, y int) {
-	fmt.Fprintf(c.svg.Writer, `<use href="#%s" x="%d" y="%d"/>`, id, x, y)
+	fmt.Fprintf(c.output, `<use href="#%s" x="%d" y="%d"/>`, id, x, y)
 }
 
 func (c *canvas) getDefs(unique string, f func(id string) string) string {
@@ -296,9 +306,9 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 			fmt.Fprintf(buf, `
 <filter id="%s">
 <feComponentTransfer>
-  <feFuncR type="linear" slope=".5" intercept="0" />
-  <feFuncG type="linear" slope=".5" intercept="0" />
-  <feFuncB type="linear" slope=".5" intercept="0" />
+  <feFuncR type="linear" slope=".5" intercept="0"/>
+  <feFuncG type="linear" slope=".5" intercept="0"/>
+  <feFuncB type="linear" slope=".5" intercept="0"/>
 </feComponentTransfer>
 </filter>
 `, id)
@@ -312,7 +322,7 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 .%s {
   font-weight: bold;
 }
-	`, id)
+`, id)
 		})
 		classes = append(classes, id)
 	}
@@ -330,9 +340,9 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 		id := c.getStyles("blink", func(id string) string {
 			return fmt.Sprintf(`
 .%s {
-  animation: blink-animation 1s steps(2, start) infinite;
+  animation: b 1s steps(2, start) infinite;
 }
-@keyframes blink-animation {
+@keyframes b {
   to {
     visibility: hidden;
   }

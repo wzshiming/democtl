@@ -3,7 +3,6 @@ package svg
 import (
 	"bytes"
 	"context"
-	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -27,49 +26,39 @@ func (f *frame) offsetY(y int) int {
 }
 
 func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
-	text = strings.ReplaceAll(text, " ", "\u2009")
 	key := fmt.Sprintf("%d,%d,%d,%s", fg, bg, mode, text)
+	attrs := f.toGlyph(fg, bg, mode)
+	if strings.HasPrefix(text, " ") ||
+		strings.HasSuffix(text, " ") ||
+		strings.Contains(text, "  ") {
+		attrs = append(attrs, `xml:space="preserve"`)
+	}
 
-	attrs := strings.Join(f.toGlyph(fg, bg, mode), " ")
 	id := f.getDefs(key, func(id string) string {
 		buf := bytes.NewBuffer(nil)
 		fmt.Fprintf(buf, `
 <symbol id="%s">
-<text %s x="10" y="25">
-`, id, attrs)
-		xml.Escape(buf, []byte(text))
-		fmt.Fprintf(buf, `
-</text>
+<text %s>%s</text>
 </symbol>
-`)
+`, id, strings.Join(attrs, " "), escapeText(text))
 		return buf.String()
 	})
-
-	f.useDef(id, f.offsetX(x)-10, f.offsetY(y)-25)
+	f.useDef(id, f.offsetX(x), f.offsetY(y)-17)
 	return nil
 }
 
 func (f *frame) DrawCursor(ctx context.Context, x, y int) error {
-	sid := f.getStyles("cursor", func(id string) string {
-		return fmt.Sprintf(`
-.%s {
-  fill: %s;
-  opacity: 0.8;
-}
-`, id, f.getColor(vt10x.DefaultCursor))
-	})
-
 	id := f.getDefs("cursor", func(id string) string {
 		buf := bytes.NewBuffer(nil)
 		fmt.Fprintf(buf, `
 <symbol id="%s">
-<rect width="%d" height="%d" class="%s" />
+<rect width="%d" height="%d" style="fill:%s;opacity:0.8"/>
 </symbol>
-`, id, colWidth, rowHeight, sid)
+`, id, colWidth, rowHeight, f.getColor(vt10x.DefaultCursor))
 		return buf.String()
 	})
 
-	f.useDef(id, f.offsetX(x), f.offsetY(y)-3-padding)
+	f.useDef(id, f.offsetX(x), f.offsetY(y)-23)
 	return nil
 }
 

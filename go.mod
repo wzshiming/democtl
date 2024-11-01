@@ -3,7 +3,6 @@ module github.com/wzshiming/democtl
 go 1.23
 
 require (
-	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b
 	github.com/creack/pty v1.1.23
 	github.com/fogleman/gg v1.3.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -19,6 +18,6 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/tdewolff/parse/v2 v2.7.19 // indirect
+	github.com/tdewolff/parse/v2 v2.7.18 // indirect
 	golang.org/x/text v0.19.0 // indirect
 )

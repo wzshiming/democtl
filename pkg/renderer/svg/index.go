@@ -1,7 +1,7 @@
 package svg
 
 const (
-	characters = "abcdefghijklmnopqrstuvwxyz"
+	characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	size       = uint64(len(characters))
 )
 
