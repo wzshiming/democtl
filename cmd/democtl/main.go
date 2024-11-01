@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/wzshiming/democtl/cmd/democtl/gif"
 	"github.com/wzshiming/democtl/cmd/democtl/mp4"
 	"github.com/wzshiming/democtl/cmd/democtl/play"
 	"github.com/wzshiming/democtl/cmd/democtl/record"
@@ -25,6 +26,7 @@ func main() {
 		play.NewCommand(),
 		svg.NewCommand(),
 		mp4.NewCommand(),
+		gif.NewCommand(),
 	)
 
 	err := cmd.Execute()
