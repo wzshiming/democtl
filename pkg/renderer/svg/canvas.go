@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
 	"github.com/wzshiming/vt10x"
 )
@@ -50,7 +51,7 @@ func (c *canvas) Initialize(ctx context.Context, x, y int, width, height int) er
 
 	c.createWindow()
 
-	fmt.Fprintf(c.output, `<g>`)
+	fmt.Fprintf(c.output, `<g id="m">`)
 
 	return nil
 }
@@ -75,42 +76,16 @@ func (c *canvas) Finish(ctx context.Context) error {
 
 func (c *canvas) Frame(ctx context.Context, index int, offset time.Duration) (renderer.Frame, error) {
 	c.offsets = append(c.offsets, offset)
-	fmt.Fprintf(c.output, `<svg x="%d">`, c.paddingRight()*index)
+	fmt.Fprintf(c.output, `<g transform="translate(%d)">`, c.paddingRight()*index)
 	return &frame{
 		canvas:    c,
 		heightOff: c.paddingTop(),
 		widthOff:  c.paddingLeft(),
 		finish: func() error {
-			fmt.Fprintf(c.output, `</svg>`)
+			fmt.Fprintf(c.output, `</g>`)
 			return nil
 		},
 	}, nil
-}
-
-func (c *canvas) getFG(fg string) string {
-	return c.getStyles(fg, func(id string) string {
-		return fmt.Sprintf(`
-.%s {
-  fill: %s;
-}
-`, id, fg)
-	})
-}
-
-func (c *canvas) getBG(bg string) string {
-	return c.getDefs(bg, func(id string) string {
-		buf := bytes.NewBuffer(nil)
-		fmt.Fprintf(buf, `
-<filter id="%s">
-<feFlood result="bg" flood-color="%s"/>
-<feMerge>
-<feMergeNode in="bg"/>
-<feMergeNode in="SourceGraphic"/>
-</feMerge>
-</filter>
-`, id, bg)
-		return buf.String()
-	})
 }
 
 func (c *canvas) paddingLeft() int {
@@ -159,14 +134,6 @@ func (c *canvas) addStyles() error {
 
 	styles = append(styles,
 		fmt.Sprintf(`
-symbol {
-  overflow: visible;
-}
-`),
-	)
-
-	styles = append(styles,
-		fmt.Sprintf(`
 text {
   font-family: Monaco,Consolas,Menlo,monospace;
   font-size: 20px;
@@ -179,7 +146,7 @@ text {
 
 	styles = append(styles,
 		fmt.Sprintf(`
-g {
+#m {
   animation-duration: %.2fs;
   animation-iteration-count: infinite;
   animation-name: k;
@@ -190,7 +157,7 @@ g {
 
 	styles = append(styles, generateKeyframes(c.offsets, int32(c.paddingRight())))
 
-	fmt.Fprintf(c.output, `<style type="text/css">`)
+	fmt.Fprintf(c.output, `<style>`)
 	defer fmt.Fprintf(c.output, `</style>`)
 
 	s, err := minifyCSS(strings.Join(styles, ""))
@@ -252,19 +219,21 @@ func (c *canvas) getStyles(unique string, f func(id string) string) string {
 
 func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 	classes := []string{}
-	filters := []string{}
 
-	if mode&vt10x.AttrReverse != 0 {
-		fg, bg = bg, fg
+	colorStr := c.getColor(fg)
+	if mode&vt10x.AttrDim != 0 {
+		r, g, b := color.ParseHexColor(colorStr)
+		colorStr = color.FormatHexColor(r/2, g/2, b/2)
 	}
 
-	if fg != vt10x.DefaultFG {
-		classes = append(classes, c.getFG(c.getColor(fg)))
-	}
-
-	if bg != vt10x.DefaultBG {
-		filters = append(filters, fmt.Sprintf(`url(#%s)`, c.getBG(c.getColor(bg))))
-	}
+	id := c.getStyles(colorStr, func(id string) string {
+		return fmt.Sprintf(`
+.%s {
+  fill: %s;
+}
+`, id, colorStr)
+	})
+	classes = append(classes, id)
 
 	if mode&vt10x.AttrUnderline != 0 {
 		if mode&vt10x.AttrStrike != 0 {
@@ -299,29 +268,15 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 		}
 	}
 
-	if mode&vt10x.AttrDim != 0 {
-		id := c.getDefs("dim", func(id string) string {
-			buf := bytes.NewBuffer(nil)
-			fmt.Fprintf(buf, `
-<filter id="%s">
-<feComponentTransfer>
-  <feFuncR type="linear" slope=".5" intercept="0"/>
-  <feFuncG type="linear" slope=".5" intercept="0"/>
-  <feFuncB type="linear" slope=".5" intercept="0"/>
-</feComponentTransfer>
-</filter>
-`, id)
-			return buf.String()
-		})
-		filters = append(filters, fmt.Sprintf(`url(#%s)`, id))
-	}
 	if mode&vt10x.AttrBold != 0 {
-		id := c.getStyles("bold", func(id string) string {
+		id := c.getStyles(fmt.Sprintf("bold,%s", colorStr), func(id string) string {
 			return fmt.Sprintf(`
 .%s {
+  stroke: %s;
+  stroke-width: 1;
   font-weight: bold;
 }
-`, id)
+`, id, colorStr)
 		})
 		classes = append(classes, id)
 	}
@@ -355,10 +310,6 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 	if len(classes) != 0 {
 		out = append(out, fmt.Sprintf(`class=%q`, strings.Join(classes, " ")))
 	}
-	if len(filters) != 0 {
-		out = append(out, fmt.Sprintf(`filter=%q`, strings.Join(filters, " ")))
-	}
-
 	return out
 }
 

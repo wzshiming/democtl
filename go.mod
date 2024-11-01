@@ -9,7 +9,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/tdewolff/minify/v2 v2.21.1
 	github.com/wzshiming/getch v0.0.0-20201023133301-8e758c21cf27
-	github.com/wzshiming/vt10x v0.0.0-20241101101858-9e60c576db02
+	github.com/wzshiming/vt10x v0.0.0-20241101113103-88929292c61f
 	golang.org/x/image v0.21.0
 	golang.org/x/sys v0.26.0
 	gopkg.in/yaml.v3 v3.0.1

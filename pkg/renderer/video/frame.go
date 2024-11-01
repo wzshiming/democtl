@@ -44,10 +44,8 @@ func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10
 	bgColorStr := f.getColor(bg)
 
 	if mode&vt10x.AttrDim != 0 {
-		if fg != vt10x.DefaultFG {
-			r, g, b := color.ParseHexColor(colorStr)
-			colorStr = color.FormatHexColor(r/2, g/2, b/2)
-		}
+		r, g, b := color.ParseHexColor(colorStr)
+		colorStr = color.FormatHexColor(r/2, g/2, b/2)
 	}
 
 	offsetX := f.offsetX(x)
