@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
 	"github.com/wzshiming/vt10x"
 )
@@ -35,11 +34,11 @@ const (
 	padding   = 20
 )
 
-func NewCanvas(output io.Writer, noWindow bool) renderer.Renderer {
+func NewCanvas(output io.Writer, noWindow bool, getColor func(i vt10x.Color) string) renderer.Renderer {
 	return &canvas{
 		output:   newMinifyWriter(output),
 		noWindow: noWindow,
-		getColor: color.DefaultColors().GetColorForHex,
+		getColor: getColor,
 	}
 }
 

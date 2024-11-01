@@ -1,30 +1,48 @@
 package color
 
 import (
+	"os"
+
 	"github.com/wzshiming/vt10x"
+	"gopkg.in/yaml.v3"
 )
 
 type Colors struct {
-	Color0  string // Black
-	Color1  string // Red
-	Color2  string // Green
-	Color3  string // Yellow
-	Color4  string // Blue
-	Color5  string // Magenta
-	Color6  string // Cyan
-	Color7  string // Grey
-	Color8  string // Dark Grey
-	Color9  string // Light Red
-	Color10 string // Light Green
-	Color11 string // Light Yellow
-	Color12 string // Light Blue
-	Color13 string // Light Magenta
-	Color14 string // Light Cyan
-	Color15 string // White
+	Color0  string `yaml:"color0,omitempty"`  // Black
+	Color1  string `yaml:"color1,omitempty"`  // Red
+	Color2  string `yaml:"color2,omitempty"`  // Green
+	Color3  string `yaml:"color3,omitempty"`  // Yellow
+	Color4  string `yaml:"color4,omitempty"`  // Blue
+	Color5  string `yaml:"color5,omitempty"`  // Magenta
+	Color6  string `yaml:"color6,omitempty"`  // Cyan
+	Color7  string `yaml:"color7,omitempty"`  // Grey
+	Color8  string `yaml:"color8,omitempty"`  // Dark Grey
+	Color9  string `yaml:"color9,omitempty"`  // Light Red
+	Color10 string `yaml:"color10,omitempty"` // Light Green
+	Color11 string `yaml:"color11,omitempty"` // Light Yellow
+	Color12 string `yaml:"color12,omitempty"` // Light Blue
+	Color13 string `yaml:"color13,omitempty"` // Light Magenta
+	Color14 string `yaml:"color14,omitempty"` // Light Cyan
+	Color15 string `yaml:"color15,omitempty"` // White
 
-	Foreground  string
-	Background  string
-	CursorColor string
+	Foreground  string `yaml:"foreground,omitempty"`
+	Background  string `yaml:"background,omitempty"`
+	CursorColor string `yaml:"cursorColor,omitempty"`
+}
+
+func NewColorsFromFile(path string) (*Colors, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	c := &Colors{}
+
+	err = yaml.Unmarshal(data, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 func (c Colors) GetColorForHex(i vt10x.Color) string {

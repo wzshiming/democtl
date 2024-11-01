@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
 	"github.com/wzshiming/vt10x"
 	"golang.org/x/image/font"
@@ -39,11 +38,11 @@ const (
 	padding   = 20
 )
 
-func NewCanvas(output string, noWindow bool) renderer.Renderer {
+func NewCanvas(output string, noWindow bool, getColor func(i vt10x.Color) string) renderer.Renderer {
 	return &canvas{
 		output:   output,
 		noWindow: noWindow,
-		getColor: color.DefaultColors().GetColorForHex,
+		getColor: getColor,
 	}
 }
 

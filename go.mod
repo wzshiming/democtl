@@ -12,6 +12,7 @@ require (
 	github.com/wzshiming/vt10x v0.0.0-20241031051902-f6e209d9d2ab
 	golang.org/x/image v0.21.0
 	golang.org/x/sys v0.26.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

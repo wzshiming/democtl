@@ -9,17 +9,18 @@ clean:
 %.cast: %.demo
 	@WORK_DIR=$(shell dirname $<) \
 	ROOT_DIR=$(shell pwd) \
-	./democtl.sh "$<" "$@" \
-		--ps1='' \
-		--shell zsh \
-		--env WORK_DIR \
-		--env ROOT_DIR
+	go run ./cmd/democtl rec -i "$<" -o "$@"
 
 .PRECIOUS: %.svg
 %.svg: %.cast
-	@./democtl.sh "$<" "$@" \
-		--term xresources \
-	  	--profile ./.xresources
+	@go run ./cmd/democtl svg -i "$<" -o "$@" \
+	  	--profile ./.democtl
 
 %.mp4: %.cast
-	@./democtl.sh "$<" "$@"
+	@go run ./cmd/democtl mp4 -i "$<" -o "$@" \
+		--profile ./.democtl
+
+
+%.gif: %.cast
+	@go run ./cmd/democtl gif -i "$<" -o "$@" \
+		--profile ./.democtl
