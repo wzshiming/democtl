@@ -7,6 +7,7 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/fonts"
+	"github.com/wzshiming/democtl/pkg/utils"
 	"github.com/wzshiming/vt10x"
 )
 
@@ -35,30 +36,7 @@ func (f *frame) offsetY(y int) float64 {
 	return float64(f.heightOff + y*rowHeight)
 }
 
-func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
-	if mode&vt10x.AttrReverse != 0 {
-		fg, bg = bg, fg
-	}
-
-	colorStr := f.getColor(fg)
-	bgColorStr := f.getColor(bg)
-
-	if mode&vt10x.AttrDim != 0 {
-		r, g, b := color.ParseHexColor(colorStr)
-		colorStr = color.FormatHexColor(r/2, g/2, b/2)
-	}
-
-	offsetX := f.offsetX(x)
-	offsetY := f.offsetY(y)
-	width, _ := f.dc.MeasureString(text)
-
-	if bg != vt10x.DefaultBG {
-		f.dc.SetHexColor(bgColorStr)
-		f.dc.DrawRectangle(offsetX, offsetY-rowHeight+7, width*colWidth, rowHeight)
-		f.dc.Fill()
-	}
-
-	f.dc.SetHexColor(colorStr)
+func (f *frame) setFont(mode vt10x.AttrFlag) error {
 	var err error
 	if mode&vt10x.AttrBold != 0 {
 		if mode&vt10x.AttrItalic != 0 {
@@ -97,7 +75,41 @@ func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10
 			f.dc.SetFontFace(f.regular)
 		}
 	}
+	return nil
+}
 
+func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10x.Color, mode vt10x.AttrFlag) error {
+	if mode&vt10x.AttrReverse != 0 {
+		fg, bg = bg, fg
+	}
+
+	offsetX := f.offsetX(x)
+	offsetY := f.offsetY(y)
+	width := float64(utils.StrLen(text))
+
+	bgColorStr := f.getColor(bg)
+	if bg != vt10x.DefaultBG {
+		f.dc.SetHexColor(bgColorStr)
+		f.dc.DrawRectangle(offsetX, offsetY-rowHeight+7, width*colWidth, rowHeight)
+		f.dc.Fill()
+	}
+
+	colorStr := f.getColor(fg)
+	if mode&vt10x.AttrDim != 0 {
+		r, g, b := color.ParseHexColor(colorStr)
+		colorStr = color.FormatHexColor(r/2, g/2, b/2)
+	}
+
+	if colorStr == bgColorStr {
+		return nil
+	}
+
+	err := f.setFont(mode)
+	if err != nil {
+		return err
+	}
+
+	f.dc.SetHexColor(colorStr)
 	for i, r := range text {
 		err := f.drawText(ctx, x+i, y, r, fg, bg, mode)
 		if err != nil {
@@ -106,11 +118,11 @@ func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10
 	}
 
 	if mode&vt10x.AttrUnderline != 0 {
-		f.dc.DrawLine(offsetX, offsetY+5, offsetX+width, offsetY+5)
+		f.dc.DrawLine(offsetX, offsetY+5, offsetX+width*colWidth, offsetY+5)
 		f.dc.Stroke()
 	}
 	if mode&vt10x.AttrStrike != 0 {
-		f.dc.DrawLine(offsetX, offsetY, offsetX+width, offsetY)
+		f.dc.DrawLine(offsetX, offsetY-5, offsetX+width*colWidth, offsetY-5)
 		f.dc.Stroke()
 	}
 	return nil
@@ -121,7 +133,6 @@ func (f *frame) drawText(ctx context.Context, x, y int, text rune, fg, bg vt10x.
 	offsetY := f.offsetY(y)
 
 	f.dc.DrawStringAnchored(string(text), offsetX, offsetY, 0, 0)
-
 	return nil
 }
 
