@@ -48,36 +48,44 @@ func NewPlayer(shell string, rows, cols uint16) *Player {
 	}
 }
 
-func (p *Player) readOutput() error {
-	n, retErr := p.readWithTimeout(p.buffer, time.Second)
-
-	now := time.Now()
-
+func (p *Player) readOutput(timeout time.Duration) error {
+	n, retErr := p.readWithTimeout(p.buffer, timeout)
 	if retErr != nil && retErr != io.EOF {
 		return retErr
 	}
 
-	_, err := p.debug.Write(p.buffer[:n])
+	now := time.Now()
+
+	err := p.record(p.buffer[:n], now.UnixMicro())
+	if err != nil {
+		return err
+	}
+
+	return retErr
+}
+
+func (p *Player) record(b []byte, baseTime int64) error {
+	_, err := p.debug.Write(b)
 	if err != nil {
 		return err
 	}
 
 	if p.baseTime == 0 {
-		p.baseTime = now.UnixMicro()
+		p.baseTime = baseTime
 	}
 
-	p.pushHistory(p.buffer[:n])
+	p.pushHistory(b)
 
 	event := cast.Event{
-		Time: float64(now.UnixMicro()-p.baseTime) / float64(time.Millisecond),
-		Data: string(p.buffer[:n]),
+		Time: float64(baseTime-p.baseTime) / float64(time.Millisecond),
+		Data: string(b),
 	}
 
 	err = p.encoder.EncodeEvent(event)
 	if err != nil {
 		return err
 	}
-	return retErr
+	return nil
 }
 
 func (p *Player) clearHistory() {
@@ -145,14 +153,14 @@ func (p *Player) mustGetPrompt(target []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	prompt2, err := p.getPrompt(target, time.Second/5)
+	prompt2, err := p.getPrompt(target, time.Second/2)
 	if err != nil {
 		return nil, err
 	}
 	if bytes.Equal(prompt1, prompt2) {
 		return prompt1, nil
 	}
-	prompt3, err := p.getPrompt(target, time.Second/5)
+	prompt3, err := p.getPrompt(target, time.Second/2)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +175,7 @@ func (p *Player) mustGetPrompt(target []byte) ([]byte, error) {
 
 func (p *Player) waitFinish() error {
 	for {
-		err := p.readOutput()
+		err := p.readOutput(time.Second)
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
 				break
@@ -184,24 +192,28 @@ func (p *Player) run(in io.Reader) error {
 		return err
 	}
 
-	_, err = p.ptmx.Write([]byte{'\n'})
-	if err != nil {
-		return err
-	}
-
+	first := true
 	reader := bufio.NewReader(in)
 	for {
-		err = p.waitFinish()
-		if err != nil {
-			if err == io.EOF {
-				return nil
+		if first {
+			err = p.record(prompt, time.Now().UnixMicro())
+			if err != nil {
+				return err
 			}
-			return err
-		}
+			first = false
+		} else {
+			err = p.waitFinish()
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
 
-		if !bytes.HasSuffix(p.getHistory(), prompt) {
-			time.Sleep(time.Second / 10)
-			continue
+			if !bytes.HasSuffix(p.getHistory(), prompt) {
+				time.Sleep(time.Second / 10)
+				continue
+			}
 		}
 		p.clearHistory()
 
@@ -274,7 +286,7 @@ func (p *Player) command(line []byte) error {
 		if err != nil {
 			return err
 		}
-		err = p.readOutput()
+		err = p.readOutput(time.Second)
 		if err != nil {
 			return err
 		}
@@ -322,11 +334,11 @@ func (p *Player) readWithTimeout(buffer []byte, timeout time.Duration) (int, err
 
 	n, err := unix.Select(fd+1, &readfds, nil, nil, &tv)
 	if err != nil {
-		if errors.Is(err, unix.EINTR) {
+		for errors.Is(err, unix.EINTR) {
 			n, err = unix.Select(fd+1, &readfds, nil, nil, &tv)
-			if err != nil {
-				return n, err
-			}
+		}
+		if err != nil {
+			return n, err
 		}
 	}
 

@@ -118,7 +118,7 @@ func (c *canvas) paddingTop() int {
 	if c.noWindow {
 		return padding
 	}
-	return padding + padding/2
+	return padding * 3
 }
 
 func (c *canvas) paddingBottom() int {

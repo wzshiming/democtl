@@ -118,7 +118,7 @@ func frame(c *renderContent, term vt10x.Terminal, frame Frame) (err error) {
 		}
 	}()
 
-	for row := 1; row < c.header.Height; row++ {
+	for row := 0; row < c.header.Height; row++ {
 		f := ""
 		lastCell := term.Cell(0, row)
 		lastColorFG := lastCell.FG
@@ -174,11 +174,9 @@ func frame(c *renderContent, term vt10x.Terminal, frame Frame) (err error) {
 
 	if term.CursorVisible() {
 		cursor := term.Cursor()
-		if cursor.Y != 0 {
-			err := frame.DrawCursor(c.ctx, cursor.X, cursor.Y)
-			if err != nil {
-				return err
-			}
+		err := frame.DrawCursor(c.ctx, cursor.X, cursor.Y)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
