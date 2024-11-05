@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
 	"github.com/wzshiming/democtl/pkg/renderer/svg"
+	"github.com/wzshiming/democtl/pkg/styles"
 )
 
 func NewCommand() *cobra.Command {
@@ -40,9 +40,9 @@ func NewCommand() *cobra.Command {
 }
 
 func run(inputPath, outputPath, profile string) (err error) {
-	c := color.DefaultColors()
+	c := styles.Default()
 	if profile != "" {
-		c, err = color.NewColorsFromFile(profile)
+		c, err = styles.NewStylesFromFile(profile)
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func run(inputPath, outputPath, profile string) (err error) {
 	}
 	defer outputFile.Close()
 
-	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, false, c.GetColorForHex), input)
+	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, c.NoWindows, c.GetColorForHex), input)
 	if err != nil {
 		return err
 	}

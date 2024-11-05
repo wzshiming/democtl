@@ -13,10 +13,10 @@ clean:
 
 .PRECIOUS: %.svg
 %.svg: %.cast
-	@go run ./cmd/democtl svg -i "$<" -o "$@"
+	@go run ./cmd/democtl svg -i "$<" -o "$@" -p ./.democtl
 
 %.mp4: %.cast
-	@go run ./cmd/democtl mp4 -i "$<" -o "$@"
+	@go run ./cmd/democtl mp4 -i "$<" -o "$@" -p ./.democtl
 
 %.gif: %.cast
-	@go run ./cmd/democtl gif -i "$<" -o "$@"
+	@go run ./cmd/democtl gif -i "$<" -o "$@" -p ./.democtl

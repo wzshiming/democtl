@@ -1,39 +1,20 @@
-#
-# scheme Darkside copy from https://github.com/mbadolato/iTerm2-Color-Schemes
-#
-
 foreground:  "#bababa"
 background:  "#222324"
 cursorColor: "#bbbbbb"
-
-# Black
-color0:      "#000000"
-color8:      "#000000"
-
-# Red
-color1:      "#e8341c"
-color9:      "#e05a4f"
-
-# Green
-color2:      "#68c256"
-color10:     "#77b869"
-
-# Yellow
-color3:      "#f2d42c"
-color11:     "#efd64b"
-
-# Blue
-color4:      "#1c98e8"
-color12:     "#387cd3"
-
-# Magenta
-color5:      "#8e69c9"
-color13:     "#957bbe"
-
-# Cyan
-color6:      "#1c98e8"
-color14:     "#3d97e2"
-
-# White
-color7:      "#bababa"
-color15:     "#bababa"
+color0:      "#000000" # Black
+color1:      "#cd0000" # Red
+color2:      "#00cd00" # Green
+color3:      "#cdcd00" # Yellow
+color4:      "#0000ee" # Blue
+color5:      "#cd00cd" # Magenta
+color6:      "#00cdcd" # Cyan
+color7:      "#e5e5e5" # Grey
+color8:      "#7f7f7f" # Dark Grey
+color9:      "#ff0000" # Light Red
+color10:     "#00ff00" # Light Green
+color11:     "#ffff00" # Light Yellow
+color12:     "#5c5cff" # Light Blue
+color13:     "#ff00ff" # Light Magenta
+color14:     "#00ffff" # Light Cyan
+color15:     "#ffffff" # White
+noWindows:   false

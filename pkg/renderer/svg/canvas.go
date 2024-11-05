@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/democtl/pkg/styles"
 	"github.com/wzshiming/vt10x"
 )
 
@@ -222,8 +222,8 @@ func (c *canvas) toGlyph(fg, bg vt10x.Color, mode vt10x.AttrFlag) []string {
 
 	colorStr := c.getColor(fg)
 	if mode&vt10x.AttrDim != 0 {
-		r, g, b := color.ParseHexColor(colorStr)
-		colorStr = color.FormatHexColor(r/2, g/2, b/2)
+		r, g, b := styles.ParseHexColor(colorStr)
+		colorStr = styles.FormatHexColor(r/2, g/2, b/2)
 	}
 
 	id := c.getStyles(colorStr, func(id string) string {

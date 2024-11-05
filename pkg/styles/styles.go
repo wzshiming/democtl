@@ -1,4 +1,4 @@
-package color
+package styles
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Colors struct {
+type Styles struct {
 	Color0  string `yaml:"color0,omitempty"`  // Black
 	Color1  string `yaml:"color1,omitempty"`  // Red
 	Color2  string `yaml:"color2,omitempty"`  // Green
@@ -28,14 +28,16 @@ type Colors struct {
 	Foreground  string `yaml:"foreground,omitempty"`
 	Background  string `yaml:"background,omitempty"`
 	CursorColor string `yaml:"cursorColor,omitempty"`
+
+	NoWindows bool `yaml:"noWindows,omitempty"`
 }
 
-func NewColorsFromFile(path string) (*Colors, error) {
+func NewStylesFromFile(path string) (*Styles, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	c := &Colors{}
+	c := &Styles{}
 
 	err = yaml.Unmarshal(data, &c)
 	if err != nil {
@@ -45,46 +47,46 @@ func NewColorsFromFile(path string) (*Colors, error) {
 	return c, nil
 }
 
-func (c Colors) GetColorForHex(i vt10x.Color) string {
+func (s Styles) GetColorForHex(i vt10x.Color) string {
 	switch i {
 	case vt10x.DefaultBG:
-		return c.Background
+		return s.Background
 	case vt10x.DefaultFG:
-		return c.Foreground
+		return s.Foreground
 	case vt10x.DefaultCursor:
-		return c.CursorColor
+		return s.CursorColor
 	case 0:
-		return c.Color0
+		return s.Color0
 	case 1:
-		return c.Color1
+		return s.Color1
 	case 2:
-		return c.Color2
+		return s.Color2
 	case 3:
-		return c.Color3
+		return s.Color3
 	case 4:
-		return c.Color4
+		return s.Color4
 	case 5:
-		return c.Color5
+		return s.Color5
 	case 6:
-		return c.Color6
+		return s.Color6
 	case 7:
-		return c.Color7
+		return s.Color7
 	case 8:
-		return c.Color8
+		return s.Color8
 	case 9:
-		return c.Color9
+		return s.Color9
 	case 10:
-		return c.Color10
+		return s.Color10
 	case 11:
-		return c.Color11
+		return s.Color11
 	case 12:
-		return c.Color12
+		return s.Color12
 	case 13:
-		return c.Color13
+		return s.Color13
 	case 14:
-		return c.Color14
+		return s.Color14
 	case 15:
-		return c.Color15
+		return s.Color15
 	}
 	if !i.ANSI() {
 		r, g, b, ok := i.RGB()
@@ -95,8 +97,8 @@ func (c Colors) GetColorForHex(i vt10x.Color) string {
 	return ""
 }
 
-func DefaultColors() *Colors {
-	return &Colors{
+func Default() *Styles {
+	return &Styles{
 		Color0:  colors[0],
 		Color1:  colors[1],
 		Color2:  colors[2],

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/wzshiming/democtl/pkg/color"
 	"github.com/wzshiming/democtl/pkg/fonts"
+	"github.com/wzshiming/democtl/pkg/styles"
 	"github.com/wzshiming/democtl/pkg/utils"
 	"github.com/wzshiming/vt10x"
 )
@@ -96,8 +96,8 @@ func (f *frame) DrawText(ctx context.Context, x, y int, text string, fg, bg vt10
 
 	colorStr := f.getColor(fg)
 	if mode&vt10x.AttrDim != 0 {
-		r, g, b := color.ParseHexColor(colorStr)
-		colorStr = color.FormatHexColor(r/2, g/2, b/2)
+		r, g, b := styles.ParseHexColor(colorStr)
+		colorStr = styles.FormatHexColor(r/2, g/2, b/2)
 	}
 
 	if colorStr == bgColorStr {
