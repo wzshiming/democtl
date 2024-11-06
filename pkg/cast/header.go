@@ -6,4 +6,5 @@ type Header struct {
 	Height    int               `json:"height"`
 	Timestamp int64             `json:"timestamp,omitempty"`
 	Env       map[string]string `json:"env,omitempty"`
+	Stdout    []Event           `json:"stdout,omitempty"`
 }

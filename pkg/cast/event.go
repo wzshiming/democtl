@@ -18,6 +18,19 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if len(v) == 2 {
+		err = json.Unmarshal(v[0], &e.Time)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(v[1], &e.Data)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if len(v) != 3 {
 		return fmt.Errorf("wrong event length (%d): expected 3 elements", len(v))
 	}
