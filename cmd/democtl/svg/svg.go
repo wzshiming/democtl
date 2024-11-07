@@ -14,9 +14,10 @@ import (
 
 func NewCommand() *cobra.Command {
 	var (
-		input   string
-		output  string
-		profile string
+		input          string
+		output         string
+		profile        string
+		iterationCount string = "infinite"
 	)
 	cmd := &cobra.Command{
 		Use:   "svg",
@@ -26,7 +27,7 @@ func NewCommand() *cobra.Command {
 			if input == "" {
 				return fmt.Errorf("no input file specified")
 			}
-			err := run(input, output, profile)
+			err := run(input, output, profile, iterationCount)
 			if err != nil {
 				return err
 			}
@@ -36,10 +37,11 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&input, "input", "i", input, "input filename")
 	cmd.Flags().StringVarP(&output, "output", "o", output, "output filename")
 	cmd.Flags().StringVarP(&profile, "profile", "p", profile, "profile")
+	cmd.Flags().StringVar(&iterationCount, "count", iterationCount, "iteration count")
 	return cmd
 }
 
-func run(inputPath, outputPath, profile string) (err error) {
+func run(inputPath, outputPath, profile string, iterationCount string) (err error) {
 	c := styles.Default()
 	if profile != "" {
 		c, err = styles.NewStylesFromFile(profile)
@@ -65,7 +67,7 @@ func run(inputPath, outputPath, profile string) (err error) {
 	}
 	defer outputFile.Close()
 
-	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, c.NoWindows, c.GetColorForHex), input)
+	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, c.NoWindows, iterationCount, c.GetColorForHex), input)
 	if err != nil {
 		return err
 	}

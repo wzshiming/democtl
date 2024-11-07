@@ -14,9 +14,10 @@ import (
 )
 
 type canvas struct {
-	output   io.Writer
-	noWindow bool
-	getColor func(i vt10x.Color) string
+	output         io.Writer
+	noWindow       bool
+	iterationCount string
+	getColor       func(i vt10x.Color) string
 
 	width, height int
 
@@ -35,11 +36,12 @@ const (
 	padding   = 20
 )
 
-func NewCanvas(output io.Writer, noWindow bool, getColor func(i vt10x.Color) string) renderer.Renderer {
+func NewCanvas(output io.Writer, noWindow bool, iterationCount string, getColor func(i vt10x.Color) string) renderer.Renderer {
 	return &canvas{
-		output:   newMinifyWriter(output),
-		noWindow: noWindow,
-		getColor: getColor,
+		output:         newMinifyWriter(output),
+		noWindow:       noWindow,
+		iterationCount: iterationCount,
+		getColor:       getColor,
 	}
 }
 
@@ -148,11 +150,15 @@ text {
 		fmt.Sprintf(`
 #m {
   animation-duration: %.2fs;
-  animation-iteration-count: infinite;
+  animation-iteration-count: %s;
   animation-name: k;
   animation-timing-function: steps(1,end);
+  animation-fill-mode: forwards;
 }
-`, float64(c.offsets[len(c.offsets)-1])/float64(time.Second)),
+`,
+			float64(c.offsets[len(c.offsets)-1])/float64(time.Second),
+			c.iterationCount,
+		),
 	)
 
 	styles = append(styles, generateKeyframes(c.offsets, int32(c.paddingRight())))
