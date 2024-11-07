@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/creack/pty"
 	"github.com/google/shlex"
@@ -138,14 +140,42 @@ func (p *Player) getPrompt(target []byte, timeout time.Duration) ([]byte, error)
 		off += n
 	}
 
-	buf := p.buffer[:off]
-	l := bytes.LastIndexAny(buf, "\n\x0d")
-	if l > 0 {
-		buf = buf[l+1:]
+	return getPrompt(p.buffer[:off]), nil
+}
+
+func getPrompt(prompt []byte) []byte {
+	str := string(prompt)
+	l := strings.LastIndexAny(str, "\n\x0d")
+	if l >= 0 {
+		str = str[l+1:]
 	}
-	prompt := make([]byte, len(buf))
-	copy(prompt, buf)
-	return prompt, nil
+	return []byte(str)
+}
+
+func getShortestPrompt(prompt []byte) []byte {
+	str := string(prompt)
+
+	r := strings.LastIndexFunc(str, func(r rune) bool {
+		return !unicode.IsSpace(r)
+	})
+
+	s := 0
+	if r != -1 {
+		s = len(str) - r
+	}
+
+	l := strings.LastIndexFunc(str[:r], unicode.IsSpace)
+	if l >= 0 {
+		str = str[l+1:]
+	} else {
+		str = str[r:]
+	}
+
+	if len(str) > 3+s {
+		str = str[len(str)-3-s:]
+	}
+
+	return []byte(str)
 }
 
 func (p *Player) mustGetPrompt(target []byte) ([]byte, error) {
@@ -170,7 +200,7 @@ func (p *Player) mustGetPrompt(target []byte) ([]byte, error) {
 	if bytes.Equal(prompt1, prompt3) {
 		return prompt1, nil
 	}
-	return nil, errors.New(fmt.Sprintf("can't get prompt %s, %s, %s", prompt1, prompt2, prompt1))
+	return nil, fmt.Errorf("can't get prompt %s, %s, %s", prompt1, prompt2, prompt3)
 }
 
 func (p *Player) waitFinish() error {
@@ -192,6 +222,8 @@ func (p *Player) run(in io.Reader) error {
 		return err
 	}
 
+	shortestPrompt := getShortestPrompt(prompt)
+
 	first := true
 	reader := bufio.NewReader(in)
 	for {
@@ -210,7 +242,7 @@ func (p *Player) run(in io.Reader) error {
 				return err
 			}
 
-			if !bytes.HasSuffix(p.getHistory(), prompt) {
+			if !bytes.HasSuffix(p.getHistory(), shortestPrompt) {
 				time.Sleep(time.Second / 10)
 				continue
 			}
