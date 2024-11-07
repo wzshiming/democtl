@@ -27,7 +27,7 @@ func NewCommand() *cobra.Command {
 			if input == "" {
 				return fmt.Errorf("no input file specified")
 			}
-			err := run(input, output, profile, iterationCount)
+			err := run(cmd.Context(), input, output, profile, iterationCount)
 			if err != nil {
 				return err
 			}
@@ -41,7 +41,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(inputPath, outputPath, profile string, iterationCount string) (err error) {
+func run(ctx context.Context, inputPath, outputPath, profile string, iterationCount string) (err error) {
 	c := styles.Default()
 	if profile != "" {
 		c, err = styles.NewStylesFromFile(profile)
@@ -67,7 +67,13 @@ func run(inputPath, outputPath, profile string, iterationCount string) (err erro
 	}
 	defer outputFile.Close()
 
-	err = renderer.Render(context.Background(), svg.NewCanvas(outputFile, c.NoWindows, iterationCount, c.GetColorForHex), input)
+	canvas := svg.NewCanvas(outputFile,
+		svg.WithIterationCount(iterationCount),
+		svg.WithGetColor(c.GetColorForHex),
+		svg.WithWindows(!c.NoWindows),
+	)
+
+	err = renderer.Render(ctx, canvas, input)
 	if err != nil {
 		return err
 	}

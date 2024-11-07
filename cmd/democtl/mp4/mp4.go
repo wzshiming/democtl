@@ -27,7 +27,7 @@ func NewCommand() *cobra.Command {
 			if input == "" {
 				return fmt.Errorf("no input file specified")
 			}
-			err := run(input, output, profile)
+			err := run(cmd.Context(), input, output, profile)
 			if err != nil {
 				return err
 			}
@@ -40,7 +40,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(inputPath, outputPath, profile string) (err error) {
+func run(ctx context.Context, inputPath, outputPath, profile string) (err error) {
 	c := styles.Default()
 	if profile != "" {
 		c, err = styles.NewStylesFromFile(profile)
@@ -67,7 +67,12 @@ func run(inputPath, outputPath, profile string) (err error) {
 		return err
 	}
 
-	err = renderer.Render(context.Background(), video.NewCanvas(rawDir, c.NoWindows, c.GetColorForHex), input)
+	canvas := video.NewCanvas(rawDir,
+		video.WithGetColor(c.GetColorForHex),
+		video.WithWindows(!c.NoWindows),
+	)
+
+	err = renderer.Render(ctx, canvas, input)
 	if err != nil {
 		return err
 	}

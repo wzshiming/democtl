@@ -36,13 +36,37 @@ const (
 	padding   = 20
 )
 
-func NewCanvas(output io.Writer, noWindow bool, iterationCount string, getColor func(i vt10x.Color) string) renderer.Renderer {
-	return &canvas{
-		output:         newMinifyWriter(output),
-		noWindow:       noWindow,
-		iterationCount: iterationCount,
-		getColor:       getColor,
+type Option func(*canvas)
+
+func WithWindows(b bool) Option {
+	return func(c *canvas) {
+		c.noWindow = !b
 	}
+}
+
+func WithGetColor(getColor func(i vt10x.Color) string) Option {
+	return func(c *canvas) {
+		c.getColor = getColor
+	}
+}
+
+func WithIterationCount(iterationCount string) Option {
+	return func(c *canvas) {
+		c.iterationCount = iterationCount
+	}
+}
+
+func NewCanvas(output io.Writer, options ...Option) renderer.Renderer {
+	c := &canvas{
+		output:         newMinifyWriter(output),
+		noWindow:       false,
+		getColor:       styles.Default().GetColorForHex,
+		iterationCount: "infinite",
+	}
+	for _, option := range options {
+		option(c)
+	}
+	return c
 }
 
 func (c *canvas) Initialize(ctx context.Context, x, y int, width, height int) error {

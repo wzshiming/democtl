@@ -11,6 +11,7 @@ import (
 
 	"github.com/fogleman/gg"
 	"github.com/wzshiming/democtl/pkg/renderer"
+	"github.com/wzshiming/democtl/pkg/styles"
 	"github.com/wzshiming/vt10x"
 	"golang.org/x/image/font"
 )
@@ -38,12 +39,30 @@ const (
 	padding   = 20
 )
 
-func NewCanvas(output string, noWindow bool, getColor func(i vt10x.Color) string) renderer.Renderer {
-	return &canvas{
-		output:   output,
-		noWindow: noWindow,
-		getColor: getColor,
+type Option func(*canvas)
+
+func WithWindows(b bool) Option {
+	return func(c *canvas) {
+		c.noWindow = !b
 	}
+}
+
+func WithGetColor(getColor func(i vt10x.Color) string) Option {
+	return func(c *canvas) {
+		c.getColor = getColor
+	}
+}
+
+func NewCanvas(output string, options ...Option) renderer.Renderer {
+	c := &canvas{
+		output:   output,
+		noWindow: false,
+		getColor: styles.Default().GetColorForHex,
+	}
+	for _, option := range options {
+		option(c)
+	}
+	return c
 }
 
 func (c *canvas) Initialize(ctx context.Context, x, y int, width, height int) error {
