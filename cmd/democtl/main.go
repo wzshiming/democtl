@@ -10,6 +10,7 @@ import (
 	"github.com/wzshiming/democtl/cmd/democtl/play"
 	"github.com/wzshiming/democtl/cmd/democtl/record"
 	"github.com/wzshiming/democtl/cmd/democtl/svg"
+	"github.com/wzshiming/democtl/cmd/democtl/webm"
 )
 
 func main() {
@@ -26,6 +27,7 @@ func main() {
 		play.NewCommand(),
 		svg.NewCommand(),
 		mp4.NewCommand(),
+		webm.NewCommand(),
 		gif.NewCommand(),
 	)
 
