@@ -16,7 +16,6 @@ import (
 	"github.com/google/shlex"
 	"github.com/wzshiming/democtl/pkg/cast"
 	"github.com/wzshiming/getch"
-	"golang.org/x/sys/unix"
 )
 
 type Player struct {
@@ -32,7 +31,8 @@ type Player struct {
 
 	encoder *cast.Encoder
 
-	ptmx *os.File
+	ptmx           *os.File
+	bufferedReader *bufferedReader
 
 	typingInterval time.Duration
 }
@@ -321,30 +321,11 @@ func (p *Player) Run(ctx context.Context, in io.Reader, out io.Writer, dir strin
 	defer ptmx.Close()
 
 	p.ptmx = ptmx
-
+	p.bufferedReader = newBufferedReader(ptmx)
+	go p.bufferedReader.Run()
 	return p.run(in)
 }
 
 func (p *Player) readWithTimeout(buffer []byte, timeout time.Duration) (int, error) {
-	fd := int(p.ptmx.Fd())
-	var readfds unix.FdSet
-	readfds.Set(fd)
-
-	tv := unix.NsecToTimeval(timeout.Nanoseconds())
-
-	n, err := unix.Select(fd+1, &readfds, nil, nil, &tv)
-	if err != nil {
-		for errors.Is(err, unix.EINTR) {
-			n, err = unix.Select(fd+1, &readfds, nil, nil, &tv)
-		}
-		if err != nil {
-			return n, err
-		}
-	}
-
-	if n == 0 {
-		return 0, context.DeadlineExceeded
-	}
-
-	return unix.Read(fd, buffer)
+	return p.bufferedReader.ReadWithTimeout(buffer, timeout)
 }
